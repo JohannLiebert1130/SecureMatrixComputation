@@ -129,6 +129,49 @@ void PTMatrix::printDiagonal(string label) const
     cout << endl;
 }
 
+int PTMatrix::getDimension() const
+{
+    return _d;
+}
+
+//operators
+
+long& PTMatrix::operator()(unsigned int row, unsigned int column){
+    if(row >= getDimension() || column >= getDimension())
+    {
+        cout << "Error, indices out of bound! MatSize: " << getDimension() << "*" << getDimension() <<", indices: " << row << "*" << column << endl;
+        throw out_of_range("Error, indices out of bound!");
+    }
+    return _rowMatrix[row][column];
+}
+
+const long& PTMatrix::operator()(unsigned int row, unsigned int column) const{
+    if(row >= getDimension() || column >= getDimension())
+    {
+        cout << "Error, indices out of bound! MatSize: " << getDimension() << "*" << getDimension() <<", indices: " << row << "*" << column << endl;
+        throw out_of_range("Error, indices out of bound!");
+    }
+    return _rowMatrix[row][column];
+}
+
+PTMatrix PTMatrix::operator*(const PTMatrix& other) const{
+    //check sizes
+    if(getDimension() != other.getDimension())
+        throw MatricesSizesNotMatch(getDimension(), other.getDimension());
+    
+    vector<vector<long> > res(getDimension(), vector<long>(getDimension(),0));
+    for(unsigned int i=0; i < res.size(); i++)
+        for(unsigned int j=0; j < res[i].size(); j++)
+            for(unsigned int k = 0; k < other.getDimension(); k++)
+                res[i][j] += (*this)(i,k)*other(k,j);
+    
+    return PTMatrix(res, false);
+}
+
+PTMatrix PTMatrix::operator*=(const PTMatrix& other){ return (*this) = (*this)*other; }
+
+
+
 int main()
 {
     PTMatrix ptMatrix(3,2,false);
@@ -139,5 +182,15 @@ int main()
     ptMatrix2.initDiagonal();
     ptMatrix2.printDiagonal();
 
+    vector<vector<long> > matrix2 = ptMatrix2.getDiagonalMatrix();
+    for(int i=0;i < 3; i++)
+        for(int j = 0; j < 3; j++)
+            cout << matrix2[i][j];
+    cout << endl;
+    cout << ptMatrix2(1,1);
+    cout << endl;
+    cout << ptMatrix2(2,0);
+    PTMatrix newMatrix = ptMatrix * ptMatrix2;
+    newMatrix.print();
     return 0;
 }

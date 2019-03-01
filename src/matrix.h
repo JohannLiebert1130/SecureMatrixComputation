@@ -17,6 +17,7 @@ public:
     PTMatrix(vector<vector<long> > rowMatrix, bool saveDiagonal=false);
     PTMatrix(unsigned int dimension, int numbersLimit, bool saveDiagonal=false);   //random matrix
 
+    int getDimension() const;
     static vector<vector<long> > row2Diagonal(const vector<vector<long> >& rowMatrix);    // transform a matrix from row order to diagonal order
     void initDiagonal();
     vector<vector<long> > getRowMatrix() const;
@@ -61,4 +62,20 @@ public:
     PTMatrix operator%=(unsigned int p);
     
     long& operator()(unsigned int row, unsigned int column); //return the element in [i,j] if it was regular matrix
+    const long& operator()(unsigned int row, unsigned int column) const;
+};
+
+//EXCEPTIONS
+class MatricesSizesNotMatch:public runtime_error{
+public:
+    MatricesSizesNotMatch(const int d1, const int d2) : runtime_error("Matrices sizes are not match!"), sz1(d1), sz2(d2) {}
+    const char* what(){
+        cnvt.str( "" );
+        cnvt << runtime_error::what() << ": First matrix size: " << sz1 << "x" << sz1 << ", second matrix size: " << sz2 << "x" << sz2;
+        return cnvt.str().c_str();
+    }
+    ~MatricesSizesNotMatch() throw() {};
+private:
+    int sz1, sz2;
+    static ostringstream cnvt;
 };
