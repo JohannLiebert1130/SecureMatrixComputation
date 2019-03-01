@@ -1,11 +1,18 @@
 #include <NTL/lzz_pXFactoring.h>
-#include<vector>
+#include "FHE.h"
+#include "EncryptedArray.h"
+#include "replicate.h"
 #include <fstream>
 #include <sstream>
 #include <sys/time.h>
 #include <exception>
 
 using namespace std;
+using namespace NTL;
+
+class PTMatrix;
+class EncryptedMatrix;
+
 
 class PTMatrix{
 private:
@@ -22,10 +29,6 @@ public:
     void initDiagonal();
     vector<vector<long> > getRowMatrix() const;
     vector<vector<long> > getDiagonalMatrix() const;
-
-    //Encrypting
-    //EncryptedMatrix encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveRow=false) const;
-    //EncryptedMatrix encrypt(const FHEPubKey& publicKey, bool saveRow=false) const;
 
     void print(string label="") const;   //prints the row-order matrix with some comment/label
     void printDiagonal(string label="") const;
@@ -63,6 +66,27 @@ public:
     
     long& operator()(unsigned int row, unsigned int column); //return the element in [i,j] if it was regular matrix
     const long& operator()(unsigned int row, unsigned int column) const;
+
+    //Encrypting
+    EncryptedMatrix encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveDiagonal=true) const;
+    EncryptedMatrix encrypt(const FHEPubKey& publicKey, bool saveDiagonal=true) const;
+};
+
+//This class represents an encrypted matrix.
+class EncryptedMatrix{
+private:
+    vector<Ctxt> _diagonalMatrix;
+    vector<Ctxt> _rowMatrix;
+    bool _haveDiagonalMatrix;
+    int _d;
+public:
+    EncryptedMatrix(const vector<Ctxt>& encRowMatrix,
+                    const vector<Ctxt>& encDiagonalMatrix,
+                    int dimension, bool haveDiagonalMatrix);
+
+    //Decrypt
+    PTMatrix decrypt(const EncryptedArray& ea, const FHESecKey& secretKey) const;
+    PTMatrix decrypt(const FHESecKey& secretKey) const;
 };
 
 //EXCEPTIONS

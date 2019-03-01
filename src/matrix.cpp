@@ -170,27 +170,100 @@ PTMatrix PTMatrix::operator*(const PTMatrix& other) const{
 
 PTMatrix PTMatrix::operator*=(const PTMatrix& other){ return (*this) = (*this)*other; }
 
+EncryptedMatrix PTMatrix::encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveDiagonal) const{
+    vector<Ctxt> encDiagonalMatrix(_d, Ctxt(publicKey));
+    vector<Ctxt> encRowMatrix(_d, Ctxt(publicKey));
+
+    unsigned int nslots = ea.size();
+    for(unsigned int i=0; i< _d; i++)
+    {
+        vector<long> temp = _rowMatrix[i];
+        temp.resize(nslots,0);
+        ea.encrypt(encRowMatrix[i], publicKey, temp);
+    }
+    
+    if (saveDiagonal)
+    {
+        for(unsigned int i=0; i< _d; i++)
+        {
+            vector<long> temp = _diagonalMatrix[i];
+            temp.resize(nslots,0);
+            ea.encrypt(encDiagonalMatrix[i], publicKey, temp);
+        }
+    }
+
+    return EncryptedMatrix(encRowMatrix, encDiagonalMatrix, _d, saveDiagonal);
+}
+
+EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveDiagonal) const{
+    EncryptedArray ea(publicKey.getContext());
+    return encrypt(ea, publicKey, saveDiagonal);
+}
+
+
+/* --------------------- EncryptedMatrix class -------------*/
+EncryptedMatrix::EncryptedMatrix(const vector<Ctxt>& encRowMatrix,
+                 const vector<Ctxt>& encDiagonalMatrix,
+                 int dimension, bool haveDiagonalMatrix): 
+                 _rowMatrix(encRowMatrix),
+                 _diagonalMatrix(encDiagonalMatrix),
+                 _d(dimension),
+                 _haveDiagonalMatrix(haveDiagonalMatrix){}
+
+PTMatrix EncryptedMatrix::decrypt(const EncryptedArray& ea, const FHESecKey& secretKey) const {
+    vector<vector<long> > rowMatrix(_d);
+    for(unsigned int i=0; i < _d; i++){
+        ea.decrypt(_rowMatrix[i], secretKey, rowMatrix[i]);
+        rowMatrix[i].resize(_d, 0);
+    }
+    return PTMatrix(rowMatrix, true);
+}
+
+PTMatrix EncryptedMatrix::decrypt(const FHESecKey& secretKey) const {
+    EncryptedArray ea(secretKey.getContext());
+    return decrypt(ea, secretKey);
+}
+
 
 
 int main()
 {
-    PTMatrix ptMatrix(3,2,false);
-    ptMatrix.print();
-    vector<vector<long> > matrix{{1,2,3},{4,5,6},{7,8,9}};
-    PTMatrix ptMatrix2(matrix,false);
-    ptMatrix2.print();
-    ptMatrix2.initDiagonal();
-    ptMatrix2.printDiagonal();
+    long m=0, p=257, r=3; // Native plaintext space                  // Computations will be 'modulo p'
+    long L=10;          // Levels
+    long c=2;           // Columns in key switching matrix
+    long w=64;          // Hamming weight of secret key
+    long d=0;
+    long security = 128;
+    ZZX G;
+    m = FindM(security,L,c,p, d, 0, 0);
 
-    vector<vector<long> > matrix2 = ptMatrix2.getDiagonalMatrix();
-    for(int i=0;i < 3; i++)
-        for(int j = 0; j < 3; j++)
-            cout << matrix2[i][j];
-    cout << endl;
-    cout << ptMatrix2(1,1);
-    cout << endl;
-    cout << ptMatrix2(2,0);
-    PTMatrix newMatrix = ptMatrix * ptMatrix2;
-    newMatrix.print();
+    FHEcontext context(m, p, r);
+    // initialize context
+    buildModChain(context, L, c);
+    // modify the context, adding primes to the modulus chain
+    FHESecKey secretKey(context);
+    // construct a secret key structure
+    const FHEPubKey& publicKey = secretKey;
+    // an "upcast": FHESecKey is a subclass of FHEPubKey
+
+    //if(0 == d)
+    G = context.alMod.getFactorsOverZZ()[0];
+
+    secretKey.GenSecKey(w);
+    // actually generate a secret key with Hamming weight w
+
+    addSome1DMatrices(secretKey);
+    cout << "Generated key" << endl;
+
+
+    EncryptedArray ea(context, G);
+    cout << ea.size();
+    vector<vector<long> > matrix{{1,2,3},{4,5,6},{7,8,9}};
+    PTMatrix ptMatrix1(matrix,true);
+    ptMatrix1.print();
+
+    EncryptedMatrix encMatrix = ptMatrix1.encrypt(ea, publicKey, true);
+    PTMatrix ptMatrix2 = encMatrix.decrypt(ea, secretKey);
+    ptMatrix2.print();
     return 0;
 }
