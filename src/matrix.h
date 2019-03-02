@@ -70,6 +70,10 @@ public:
     //Encrypting
     EncryptedMatrix encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveDiagonal=true) const;
     EncryptedMatrix encrypt(const FHEPubKey& publicKey, bool saveDiagonal=true) const;
+
+    //matrices multiplication
+    Ctxt operator*(const EncryptedMatrix& other) const;
+    Ctxt operator*=(const EncryptedMatrix& other);
 };
 
 //This class represents an encrypted matrix.
@@ -87,6 +91,13 @@ public:
     //Decrypt
     PTMatrix decrypt(const EncryptedArray& ea, const FHESecKey& secretKey) const;
     PTMatrix decrypt(const FHESecKey& secretKey) const;
+
+    //matrix multyplication by vector
+    Ctxt operator*(const Ctxt& vec) const;
+
+    //matrices multiplication
+    Ctxt operator*(const EncryptedMatrix& other) const;
+    Ctxt operator*=(const EncryptedMatrix& other);
 };
 
 //EXCEPTIONS

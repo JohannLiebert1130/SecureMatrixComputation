@@ -224,38 +224,66 @@ PTMatrix EncryptedMatrix::decrypt(const FHESecKey& secretKey) const {
     return decrypt(ea, secretKey);
 }
 
+//matrix multyplication by vector. NOTE: this return a column vector! so don't use it to create a matrix (unless you want it to be column vectors matrix)
+Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
+    EncryptedArray ea(vec.getContext());
+    Ctxt result(vec.getPubKey());
+    int len = _diagonalMatrix.size();
+    
+    //TODO: Still not perfectlly working
+    
+    Ctxt fixedVec = vec;
+    cout << "ea.size " << ea.size() << " matrix row size " << _d << endl;
+    if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
+    {
+        //replicate the vector to fill instead of zero padding
+        for(unsigned int length = _d; length < ea.size(); length*=2){
+            Ctxt copyVec = fixedVec;
+            cout << "ok" << endl;
+            ea.shift(copyVec, length);  //shift length to right
+            fixedVec+=copyVec;
+        }
+    }
+    
+    for(int i=0; i < len; i++)
+    {
+        cout << "yes" << endl;
+        Ctxt rotatedVec(fixedVec);   //copy vec
+        ea.rotate(rotatedVec, -i);   //rotate it i right (-i left)
+        rotatedVec *= _diagonalMatrix[i];
+        result += rotatedVec;
+    }
+    return result;
+}
+
 
 
 int main()
 {
-    long m=0, p=257, r=3; // Native plaintext space                  // Computations will be 'modulo p'
-    long L=10;          // Levels
-    long c=2;           // Columns in key switching matrix
-    long w=64;          // Hamming weight of secret key
-    long d=0;
-    long security = 128;
+    long m = 0;                   // Specific modulus
+	long p = 113;                 // Plaintext base [default=2], should be a prime number
+	long r = 1;                   // Lifting [default=1]
+	long L = 16;                  // Number of levels in the modulus chain [default=heuristic]
+	long c = 3;                   // Number of columns in key-switching matrix [default=2]
+	long w = 64;                  // Hamming weight of secret key
+	long d = 0;                   // Degree of the field extension [default=1]
+	long k = 80;                  // Security parameter [default=80] 
+    long s = 0;                   // Minimum number of slots [default=0]
+    
+    m = FindM(k, L, c, p, d, s, 0);           // Find a value for m given the specified values
+
+    std::cout << "Initializing context... " << std::flush;
+	FHEcontext context(m, p, r); 	          // Initialize context
+	buildModChain(context, L, c);             // Modify the context, adding primes to the modulus chain
+	std::cout << "OK!" << std::endl;
+
+	std::cout << "Generating keys... " << std::flush;
+	FHESecKey secretKey(context);                    // Construct a secret key structure
+	const FHEPubKey& publicKey = secretKey;                 // An "upcast": FHESecKey is a subclass of FHEPubKey
+	secretKey.GenSecKey(w);                          // Actually generate a secret key with Hamming weight
+	addSome1DMatrices(secretKey);                    // Extra information for relinearization
+
     ZZX G;
-    m = FindM(security,L,c,p, d, 0, 0);
-
-    FHEcontext context(m, p, r);
-    // initialize context
-    buildModChain(context, L, c);
-    // modify the context, adding primes to the modulus chain
-    FHESecKey secretKey(context);
-    // construct a secret key structure
-    const FHEPubKey& publicKey = secretKey;
-    // an "upcast": FHESecKey is a subclass of FHEPubKey
-
-    //if(0 == d)
-    G = context.alMod.getFactorsOverZZ()[0];
-
-    secretKey.GenSecKey(w);
-    // actually generate a secret key with Hamming weight w
-
-    addSome1DMatrices(secretKey);
-    cout << "Generated key" << endl;
-
-
     EncryptedArray ea(context, G);
     cout << ea.size();
     vector<vector<long> > matrix{{1,2,3},{4,5,6},{7,8,9}};
@@ -265,5 +293,15 @@ int main()
     EncryptedMatrix encMatrix = ptMatrix1.encrypt(ea, publicKey, true);
     PTMatrix ptMatrix2 = encMatrix.decrypt(ea, secretKey);
     ptMatrix2.print();
+
+    vector<long> v1{1,2,3};
+    v1.resize(ea.size(), 0);
+    Ctxt encV1(publicKey);
+    ea.encrypt(encV1, publicKey, v1);
+    Ctxt ctxt1 = encMatrix * encV1;
+    
+    vector<long> result(ea.size(), 0);
+    ea.decrypt(ctxt1, secretKey, result);
+    cout << result[0] << ' ' << result[1] << ' ' << result[2] << endl;
     return 0;
 }
