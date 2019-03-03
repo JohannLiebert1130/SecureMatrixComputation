@@ -32,7 +32,7 @@ void printNum(long num, int size){
 
 /* --------------------- PTMatrix (Plain Text Matrix) class --------------------------*/
 
-vector<vector<long> > PTMatrix::row2Diagonal(const vector<vector<long> >& rowMatrix)
+vector<vector<long> > PTMatrix::Row2Diagonal(const vector<vector<long> >& rowMatrix)
 {
     vector<vector<long> > diagonalMatrix = vector<vector<long> >(rowMatrix[0].size(), vector<long>(rowMatrix.size(),0));
     for(unsigned int i=0, sz1 = diagonalMatrix.size(); i < sz1; i++)
@@ -40,15 +40,26 @@ vector<vector<long> > PTMatrix::row2Diagonal(const vector<vector<long> >& rowMat
             diagonalMatrix[i][j] = rowMatrix[j][(i+j)%sz1];
     return diagonalMatrix;
 }
-PTMatrix::PTMatrix(vector<vector<long> > rowMatrix, bool saveDiagonal)
+
+vector<vector<long> > PTMatrix::Diagonal2Row(const vector<vector<long> >& diagonalMatrix)
 {
-    _d = rowMatrix.size();
-    _rowMatrix = rowMatrix;
-    if(saveDiagonal)
-        _diagonalMatrix = PTMatrix::row2Diagonal(_rowMatrix);
+    vector<vector<long> > rowMatrix = vector<vector<long> >(diagonalMatrix[0].size(), vector<long>(diagonalMatrix.size(),0));
+    for(unsigned int i=0, sz1 = rowMatrix.size(); i < sz1; i++)
+        for(unsigned int j=0, sz2 = rowMatrix[i].size(); j < sz2; j++)
+            rowMatrix[i][j] = diagonalMatrix[myModulu(j-i,sz1)][i];
+    return rowMatrix;
 }
 
-PTMatrix::PTMatrix(unsigned int dimension, int numbersLimit, bool saveDiagonal)
+PTMatrix::PTMatrix(vector<vector<long> > rowMatrix, bool saveRowMatrix)
+{        
+    _d = rowMatrix.size();
+    _diagonalMatrix = PTMatrix::Row2Diagonal(rowMatrix);
+    if(saveRowMatrix)
+        _rowMatrix = rowMatrix;
+        
+}
+
+PTMatrix::PTMatrix(unsigned int dimension, int numbersLimit, bool saveRowMatrix)
 /*this constructor create a random matrix
 params:
  sizes: - the size of the matrix
@@ -56,19 +67,15 @@ params:
 */
 {
     _d = dimension;
-    _rowMatrix = vector<vector<long> >(dimension, vector<long>(dimension));
+    _diagonalMatrix = vector<vector<long> >(dimension, vector<long>(dimension));
     for(unsigned int i=0; i < dimension; i++)
         for(unsigned int j=0; j< dimension; j++)
-            _rowMatrix[i][j] = rand() % numbersLimit;
+            _diagonalMatrix[i][j] = rand() % numbersLimit;
 
-    if(saveDiagonal)
-        _diagonalMatrix = PTMatrix::row2Diagonal(_rowMatrix);
+    if(saveRowMatrix)
+        _rowMatrix = PTMatrix::Diagonal2Row(_diagonalMatrix);
 }
 
-void PTMatrix::initDiagonal()
-{
-    _diagonalMatrix = PTMatrix::row2Diagonal(_rowMatrix);
-}
 
 vector<vector<long> > PTMatrix::getRowMatrix() const
 {
@@ -83,8 +90,7 @@ vector<vector<long> > PTMatrix::getDiagonalMatrix() const
 void PTMatrix::print(string label) const{
     if(label.compare("")!=0)
         cout << label << endl;
-
-    unsigned int cellSize = largestNumInMatrixDigits(_rowMatrix)+1; //+1 for space
+    unsigned int cellSize = largestNumInMatrixDigits(_diagonalMatrix)+1; //+1 for space
     
     cout << " ";
     
@@ -95,7 +101,7 @@ void PTMatrix::print(string label) const{
     {
         cout << "|";
         for(unsigned int j=0; j< _d; j++)
-                printNum(_rowMatrix[i][j], cellSize);
+                printNum((*this)(i,j), cellSize);
         cout << "|" << endl;
     }
     cout << " ";
@@ -137,21 +143,21 @@ int PTMatrix::getDimension() const
 //operators
 
 long& PTMatrix::operator()(unsigned int row, unsigned int column){
-    if(row >= getDimension() || column >= getDimension())
+    if(row >= _d || column >= _d)
     {
-        cout << "Error, indices out of bound! MatSize: " << getDimension() << "*" << getDimension() <<", indices: " << row << "*" << column << endl;
         throw out_of_range("Error, indices out of bound!");
     }
-    return _rowMatrix[row][column];
+    int i = row, j = column; //casting to int so the subtraction be ok
+    return _diagonalMatrix[myModulu(j-i,_d)][row];
 }
 
 const long& PTMatrix::operator()(unsigned int row, unsigned int column) const{
-    if(row >= getDimension() || column >= getDimension())
+    if(row >= _d || column >= _d)
     {
-        cout << "Error, indices out of bound! MatSize: " << getDimension() << "*" << getDimension() <<", indices: " << row << "*" << column << endl;
         throw out_of_range("Error, indices out of bound!");
     }
-    return _rowMatrix[row][column];
+    int i = row, j = column; //casting to int so the subtraction be ok
+    return _diagonalMatrix[myModulu(j-i,_d)][row];
 }
 
 PTMatrix PTMatrix::operator*(const PTMatrix& other) const{
@@ -170,80 +176,80 @@ PTMatrix PTMatrix::operator*(const PTMatrix& other) const{
 
 PTMatrix PTMatrix::operator*=(const PTMatrix& other){ return (*this) = (*this)*other; }
 
-EncryptedMatrix PTMatrix::encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveDiagonal) const{
-    vector<Ctxt> encDiagonalMatrix(_d, Ctxt(publicKey));
-    vector<Ctxt> encRowMatrix(_d, Ctxt(publicKey));
+// EncryptedMatrix PTMatrix::encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveRow) const{
+//     vector<Ctxt> encDiagonalMatrix(_d, Ctxt(publicKey));
+//     vector<Ctxt> encRowMatrix(_d, Ctxt(publicKey));
 
-    unsigned int nslots = ea.size();
-    for(unsigned int i=0; i< _d; i++)
-    {
-        vector<long> temp = _rowMatrix[i];
-        temp.resize(nslots,0);
-        ea.encrypt(encRowMatrix[i], publicKey, temp);
-    }
+//     unsigned int nslots = ea.size();
+//     for(unsigned int i=0; i< _d; i++)
+//     {
+//         vector<long> temp = _rowMatrix[i];
+//         temp.resize(nslots,0);
+//         ea.encrypt(encRowMatrix[i], publicKey, temp);
+//     }
     
-    if (saveDiagonal)
-    {
-        for(unsigned int i=0; i< _d; i++)
-        {
-            vector<long> temp = _diagonalMatrix[i];
-            temp.resize(nslots,0);
-            ea.encrypt(encDiagonalMatrix[i], publicKey, temp);
-        }
-    }
+//     if (saveDiagonal)
+//     {
+//         for(unsigned int i=0; i< _d; i++)
+//         {
+//             vector<long> temp = _diagonalMatrix[i];
+//             temp.resize(nslots,0);
+//             ea.encrypt(encDiagonalMatrix[i], publicKey, temp);
+//         }
+//     }
 
-    return EncryptedMatrix(encRowMatrix, encDiagonalMatrix, _d, saveDiagonal);
-}
+//     return EncryptedMatrix(encRowMatrix, encDiagonalMatrix, _d, saveDiagonal);
+// }
 
-EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveDiagonal) const{
-    EncryptedArray ea(publicKey.getContext());
-    return encrypt(ea, publicKey, saveDiagonal);
-}
+// EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveDiagonal) const{
+//     EncryptedArray ea(publicKey.getContext());
+//     return encrypt(ea, publicKey, saveDiagonal);
+// }
 
-PTMatrix PTMatrix::sigmaPermutation(unsigned int d){
-    long dSquare = d * d;
-    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-    for(int l=0; l < dSquare; l++)
-        for(int i=0; i < d; i++)
-            for(int j=0; j < d; j++)
-            {
-                if(l == d*i + myModulu(i+j,d)) rowMatrix[d*i+j][l] = 1;
-            }
-    return PTMatrix(rowMatrix, true);
-}
-PTMatrix PTMatrix::tauPermutation(unsigned int d){
-    long dSquare = d * d;
-    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-    for(int l=0; l < dSquare; l++)
-        for(int i=0; i < d; i++)
-            for(int j=0; j < d; j++)
-            {
-                if(l == d*myModulu(i+j,d) + j) rowMatrix[d*i+j][l] = 1;
-            }
-    return PTMatrix(rowMatrix, true);
-}
-PTMatrix PTMatrix::phiPermutation(unsigned int d, int k){
-    long dSquare = d * d;
-    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-    for(int l=0; l < dSquare; l++)
-        for(int i=0; i < d; i++)
-            for(int j=0; j < d; j++)
-            {
-                if(l == d*i + myModulu(k+j,d)) rowMatrix[d*i+j][l] = 1;
-            }
-    return PTMatrix(rowMatrix, true);
-}
-PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
-    long dSquare = d * d;
-    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-    for(int l=0; l < dSquare; l++)
-        for(int i=0; i < d; i++)
-            for(int j=0; j < d; j++)
-            {
-                if(l == d*myModulu(i+k,d) + j) rowMatrix[d*i+j][l] = 1;
-            }
-    return PTMatrix(rowMatrix, true);
-}
+// PTMatrix PTMatrix::sigmaPermutation(unsigned int d){
+//     long dSquare = d * d;
+//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+//     for(int l=0; l < dSquare; l++)
+//         for(int i=0; i < d; i++)
+//             for(int j=0; j < d; j++)
+//             {
+//                 if(l == d*i + myModulu(i+j,d)) rowMatrix[d*i+j][l] = 1;
+//             }
+//     return PTMatrix(rowMatrix, true);
+// }
+// PTMatrix PTMatrix::tauPermutation(unsigned int d){
+//     long dSquare = d * d;
+//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+//     for(int l=0; l < dSquare; l++)
+//         for(int i=0; i < d; i++)
+//             for(int j=0; j < d; j++)
+//             {
+//                 if(l == d*myModulu(i+j,d) + j) rowMatrix[d*i+j][l] = 1;
+//             }
+//     return PTMatrix(rowMatrix, true);
+// }
+// PTMatrix PTMatrix::phiPermutation(unsigned int d, int k){
+//     long dSquare = d * d;
+//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+//     for(int l=0; l < dSquare; l++)
+//         for(int i=0; i < d; i++)
+//             for(int j=0; j < d; j++)
+//             {
+//                 if(l == d*i + myModulu(k+j,d)) rowMatrix[d*i+j][l] = 1;
+//             }
+//     return PTMatrix(rowMatrix, true);
+// }
+// PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
+//     long dSquare = d * d;
+//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+//     for(int l=0; l < dSquare; l++)
+//         for(int i=0; i < d; i++)
+//             for(int j=0; j < d; j++)
+//             {
+//                 if(l == d*myModulu(i+k,d) + j) rowMatrix[d*i+j][l] = 1;
+//             }
+//     return PTMatrix(rowMatrix, true);
+// }
 
 
 
@@ -304,6 +310,7 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
 
 
 
+
 int main()
 {
     long m = 0;                   // Specific modulus
@@ -331,26 +338,27 @@ int main()
 
     ZZX G;
     EncryptedArray ea(context, G);
-    cout << ea.size();
+    cout << "nslots: " ea.size() << endl;
     vector<vector<long> > matrix{{1,2,3},{4,5,6},{7,8,9}};
-    PTMatrix ptMatrix1(matrix,true);
+    PTMatrix ptMatrix1(matrix,false);
     ptMatrix1.print();
+    ptMatrix1.printDiagonal();
 
-    EncryptedMatrix encMatrix = ptMatrix1.encrypt(ea, publicKey, true);
-    PTMatrix ptMatrix2 = encMatrix.decrypt(ea, secretKey);
-    ptMatrix2.print();
+    // EncryptedMatrix encMatrix = ptMatrix1.encrypt(ea, publicKey, true);
+    // PTMatrix ptMatrix2 = encMatrix.decrypt(ea, secretKey);
+    // ptMatrix2.print();
 
-    vector<long> v1{1,2,3};
-    v1.resize(ea.size(), 0);
-    Ctxt encV1(publicKey);
-    ea.encrypt(encV1, publicKey, v1);
-    Ctxt ctxt1 = encMatrix * encV1;
+    // vector<long> v1{1,2,3};
+    // v1.resize(ea.size(), 0);
+    // Ctxt encV1(publicKey);
+    // ea.encrypt(encV1, publicKey, v1);
+    // Ctxt ctxt1 = encMatrix * encV1;
     
-    vector<long> result(ea.size(), 0);
-    ea.decrypt(ctxt1, secretKey, result);
-    cout << result[0] << ' ' << result[1] << ' ' << result[2] << endl;
+    // vector<long> result(ea.size(), 0);
+    // ea.decrypt(ctxt1, secretKey, result);
+    // cout << result[0] << ' ' << result[1] << ' ' << result[2] << endl;
 
-    PTMatrix sigma = PTMatrix::sigmaPermutation(3);
-    sigma.print();
+    // PTMatrix sigma = PTMatrix::sigmaPermutation(3);
+    // sigma.print();
     return 0;
 }

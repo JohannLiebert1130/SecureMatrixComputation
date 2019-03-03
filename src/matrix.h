@@ -21,12 +21,14 @@ private:
     unsigned int _d;  // matrix dimension
 
 public:
-    PTMatrix(vector<vector<long> > rowMatrix, bool saveDiagonal=false);
-    PTMatrix(unsigned int dimension, int numbersLimit, bool saveDiagonal=false);   //random matrix
+    PTMatrix(vector<vector<long> > rowMatrix, bool saveRowMatrix=false);
+    PTMatrix(unsigned int dimension, int numbersLimit, bool saveRowMatrix=false);   //random matrix
 
     int getDimension() const;
-    static vector<vector<long> > row2Diagonal(const vector<vector<long> >& rowMatrix);    // transform a matrix from row order to diagonal order
-    void initDiagonal();
+    static vector<vector<long> > Row2Diagonal(const vector<vector<long> >& rowMatrix);    // transform a matrix from row order to diagonal order
+    static vector<vector<long> > Diagonal2Row(const vector<vector<long> >& diagonalMatrix);
+
+
     vector<vector<long> > getRowMatrix() const;
     vector<vector<long> > getDiagonalMatrix() const;
 
@@ -68,8 +70,8 @@ public:
     const long& operator()(unsigned int row, unsigned int column) const;
 
     //Encrypting
-    EncryptedMatrix encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveDiagonal=true) const;
-    EncryptedMatrix encrypt(const FHEPubKey& publicKey, bool saveDiagonal=true) const;
+    EncryptedMatrix encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveRow=false) const;
+    EncryptedMatrix encrypt(const FHEPubKey& publicKey, bool saveRow=false) const;
 
     //matrices multiplication
     Ctxt operator*(const EncryptedMatrix& other) const;
@@ -101,9 +103,19 @@ public:
     //matrix multyplication by vector
     Ctxt operator*(const Ctxt& vec) const;
 
+    Ctxt LinTrans1(const Ctxt& vec, int d) const;
+    Ctxt LinTrans2(const Ctxt& vec, int d) const;
+    Ctxt LinTrans3(const Ctxt& vec, int d, int k) const;
+    Ctxt LinTrans4(const Ctxt& vec, int d, int k) const;
+
+    // Matrix Encoding Method,
+    static Ctxt MatrixEncoding(vector<Ctxt> matrix);
+
     //matrices multiplication
     Ctxt operator*(const EncryptedMatrix& other) const;
     Ctxt operator*=(const EncryptedMatrix& other);
+
+
 };
 
 //EXCEPTIONS
