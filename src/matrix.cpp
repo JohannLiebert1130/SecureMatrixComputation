@@ -200,6 +200,52 @@ EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveDiagonal)
     return encrypt(ea, publicKey, saveDiagonal);
 }
 
+PTMatrix PTMatrix::sigmaPermutation(unsigned int d){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*i + myModulu(i+j,d)) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, true);
+}
+PTMatrix PTMatrix::tauPermutation(unsigned int d){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*myModulu(i+j,d) + j) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, true);
+}
+PTMatrix PTMatrix::phiPermutation(unsigned int d, int k){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*i + myModulu(k+j,d)) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, true);
+}
+PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*myModulu(i+k,d) + j) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, true);
+}
+
+
 
 /* --------------------- EncryptedMatrix class -------------*/
 EncryptedMatrix::EncryptedMatrix(const vector<Ctxt>& encRowMatrix,
@@ -303,5 +349,8 @@ int main()
     vector<long> result(ea.size(), 0);
     ea.decrypt(ctxt1, secretKey, result);
     cout << result[0] << ' ' << result[1] << ' ' << result[2] << endl;
+
+    PTMatrix sigma = PTMatrix::sigmaPermutation(3);
+    sigma.print();
     return 0;
 }

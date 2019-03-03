@@ -74,6 +74,12 @@ public:
     //matrices multiplication
     Ctxt operator*(const EncryptedMatrix& other) const;
     Ctxt operator*=(const EncryptedMatrix& other);
+
+    static PTMatrix sigmaPermutation(unsigned int d);
+    static PTMatrix tauPermutation(unsigned int d);
+    static PTMatrix phiPermutation(unsigned int d, int k);
+    static PTMatrix psiPermutation(unsigned int d, int k);
+
 };
 
 //This class represents an encrypted matrix.
