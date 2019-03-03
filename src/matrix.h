@@ -21,12 +21,13 @@ private:
     unsigned int _d;  // matrix dimension
 
 public:
-    PTMatrix(vector<vector<long> > rowMatrix, bool saveRowMatrix=false);
+    PTMatrix(vector<vector<long> > matrix, bool isDiagonal, bool saveRowMatrix=false);
     PTMatrix(unsigned int dimension, int numbersLimit, bool saveRowMatrix=false);   //random matrix
 
     int getDimension() const;
     static vector<vector<long> > Row2Diagonal(const vector<vector<long> >& rowMatrix);    // transform a matrix from row order to diagonal order
     static vector<vector<long> > Diagonal2Row(const vector<vector<long> >& diagonalMatrix);
+    static vector<long> MatrixEncoding(const vector<vector<long> >& rowMatrix);
 
 
     vector<vector<long> > getRowMatrix() const;
@@ -88,13 +89,13 @@ public:
 class EncryptedMatrix{
 private:
     vector<Ctxt> _diagonalMatrix;
-    vector<Ctxt> _rowMatrix;
-    bool _haveDiagonalMatrix;
+    Ctxt _rowMatrix;
+    bool _haveRowMatrix;
     int _d;
 public:
-    EncryptedMatrix(const vector<Ctxt>& encRowMatrix,
-                    const vector<Ctxt>& encDiagonalMatrix,
-                    int dimension, bool haveDiagonalMatrix);
+    EncryptedMatrix(const vector<Ctxt>& encDiagonalMatrix,
+                    const Ctxt& encRowMatrix,
+                    int dimension, bool haveRowMatrix);
 
     //Decrypt
     PTMatrix decrypt(const EncryptedArray& ea, const FHESecKey& secretKey) const;

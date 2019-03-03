@@ -50,12 +50,21 @@ vector<vector<long> > PTMatrix::Diagonal2Row(const vector<vector<long> >& diagon
     return rowMatrix;
 }
 
-PTMatrix::PTMatrix(vector<vector<long> > rowMatrix, bool saveRowMatrix)
-{        
-    _d = rowMatrix.size();
-    _diagonalMatrix = PTMatrix::Row2Diagonal(rowMatrix);
-    if(saveRowMatrix)
-        _rowMatrix = rowMatrix;
+PTMatrix::PTMatrix(vector<vector<long> > matrix, bool isDiagonal, bool saveRowMatrix)
+{   
+    _d = matrix.size();
+    if(isDiagonal)
+    {
+        _diagonalMatrix = matrix;
+        if(saveRowMatrix)
+            _rowMatrix = PTMatrix::Diagonal2Row(matrix);
+    }
+    else
+    {
+        _diagonalMatrix = PTMatrix::Row2Diagonal(matrix);
+        if(saveRowMatrix)
+            _rowMatrix = matrix;
+    }
         
 }
 
@@ -176,35 +185,41 @@ PTMatrix PTMatrix::operator*(const PTMatrix& other) const{
 
 PTMatrix PTMatrix::operator*=(const PTMatrix& other){ return (*this) = (*this)*other; }
 
-// EncryptedMatrix PTMatrix::encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveRow) const{
-//     vector<Ctxt> encDiagonalMatrix(_d, Ctxt(publicKey));
-//     vector<Ctxt> encRowMatrix(_d, Ctxt(publicKey));
+vector<long> PTMatrix::MatrixEncoding(const vector<vector<long> >& rowMatrix)
+{
+    vector<long> v;
+    for(int i=0; i < rowMatrix.size(); i++)
+    {
+        v.insert(v.end(), rowMatrix[i].begin(), rowMatrix[i].end());
+    }
+    return v;
+}
+EncryptedMatrix PTMatrix::encrypt(const EncryptedArray& ea, const FHEPubKey& publicKey, bool saveRow) const{
+    vector<Ctxt> encDiagonalMatrix(_d, Ctxt(publicKey));
+    Ctxt encRowMatrix(publicKey);
 
-//     unsigned int nslots = ea.size();
-//     for(unsigned int i=0; i< _d; i++)
-//     {
-//         vector<long> temp = _rowMatrix[i];
-//         temp.resize(nslots,0);
-//         ea.encrypt(encRowMatrix[i], publicKey, temp);
-//     }
+    unsigned int nslots = ea.size();
+    for(unsigned int i=0; i< _d; i++)
+        {
+            vector<long> temp = _diagonalMatrix[i];
+            temp.resize(nslots,0);
+            ea.encrypt(encDiagonalMatrix[i], publicKey, temp);
+        }
     
-//     if (saveDiagonal)
-//     {
-//         for(unsigned int i=0; i< _d; i++)
-//         {
-//             vector<long> temp = _diagonalMatrix[i];
-//             temp.resize(nslots,0);
-//             ea.encrypt(encDiagonalMatrix[i], publicKey, temp);
-//         }
-//     }
+    if (saveRow)
+    {
+        vector<long> flatMatrix = PTMatrix::MatrixEncoding(_rowMatrix);
+        flatMatrix.resize(nslots, 0);
+        ea.encrypt(encRowMatrix, publicKey, flatMatrix);
+    }
 
-//     return EncryptedMatrix(encRowMatrix, encDiagonalMatrix, _d, saveDiagonal);
-// }
+    return EncryptedMatrix(encDiagonalMatrix, encRowMatrix, _d, saveRow);
+}
 
-// EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveDiagonal) const{
-//     EncryptedArray ea(publicKey.getContext());
-//     return encrypt(ea, publicKey, saveDiagonal);
-// }
+EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveRow) const{
+    EncryptedArray ea(publicKey.getContext());
+    return encrypt(ea, publicKey, saveRow);
+}
 
 // PTMatrix PTMatrix::sigmaPermutation(unsigned int d){
 //     long dSquare = d * d;
@@ -254,21 +269,22 @@ PTMatrix PTMatrix::operator*=(const PTMatrix& other){ return (*this) = (*this)*o
 
 
 /* --------------------- EncryptedMatrix class -------------*/
-EncryptedMatrix::EncryptedMatrix(const vector<Ctxt>& encRowMatrix,
+EncryptedMatrix::EncryptedMatrix(
                  const vector<Ctxt>& encDiagonalMatrix,
-                 int dimension, bool haveDiagonalMatrix): 
+                 const Ctxt& encRowMatrix,
+                 int dimension, bool haveRowMatrix): 
                  _rowMatrix(encRowMatrix),
                  _diagonalMatrix(encDiagonalMatrix),
                  _d(dimension),
-                 _haveDiagonalMatrix(haveDiagonalMatrix){}
+                 _haveRowMatrix(haveRowMatrix){}
 
 PTMatrix EncryptedMatrix::decrypt(const EncryptedArray& ea, const FHESecKey& secretKey) const {
-    vector<vector<long> > rowMatrix(_d);
+    vector<vector<long> > diagonalMatrix(_d);
     for(unsigned int i=0; i < _d; i++){
-        ea.decrypt(_rowMatrix[i], secretKey, rowMatrix[i]);
-        rowMatrix[i].resize(_d, 0);
+        ea.decrypt(_diagonalMatrix[i], secretKey, diagonalMatrix[i]);
+        diagonalMatrix[i].resize(_d, 0);
     }
-    return PTMatrix(rowMatrix, true);
+    return PTMatrix(diagonalMatrix, true, false);
 }
 
 PTMatrix EncryptedMatrix::decrypt(const FHESecKey& secretKey) const {
@@ -276,37 +292,37 @@ PTMatrix EncryptedMatrix::decrypt(const FHESecKey& secretKey) const {
     return decrypt(ea, secretKey);
 }
 
-//matrix multyplication by vector. NOTE: this return a column vector! so don't use it to create a matrix (unless you want it to be column vectors matrix)
-Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
-    EncryptedArray ea(vec.getContext());
-    Ctxt result(vec.getPubKey());
-    int len = _diagonalMatrix.size();
+// //matrix multyplication by vector. NOTE: this return a column vector! so don't use it to create a matrix (unless you want it to be column vectors matrix)
+// Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
+//     EncryptedArray ea(vec.getContext());
+//     Ctxt result(vec.getPubKey());
+//     int len = _diagonalMatrix.size();
     
-    //TODO: Still not perfectlly working
+//     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = vec;
-    cout << "ea.size " << ea.size() << " matrix row size " << _d << endl;
-    if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
-    {
-        //replicate the vector to fill instead of zero padding
-        for(unsigned int length = _d; length < ea.size(); length*=2){
-            Ctxt copyVec = fixedVec;
-            cout << "ok" << endl;
-            ea.shift(copyVec, length);  //shift length to right
-            fixedVec+=copyVec;
-        }
-    }
+//     Ctxt fixedVec = vec;
+//     cout << "ea.size " << ea.size() << " matrix row size " << _d << endl;
+//     if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
+//     {
+//         //replicate the vector to fill instead of zero padding
+//         for(unsigned int length = _d; length < ea.size(); length*=2){
+//             Ctxt copyVec = fixedVec;
+//             cout << "ok" << endl;
+//             ea.shift(copyVec, length);  //shift length to right
+//             fixedVec+=copyVec;
+//         }
+//     }
     
-    for(int i=0; i < len; i++)
-    {
-        cout << "yes" << endl;
-        Ctxt rotatedVec(fixedVec);   //copy vec
-        ea.rotate(rotatedVec, -i);   //rotate it i right (-i left)
-        rotatedVec *= _diagonalMatrix[i];
-        result += rotatedVec;
-    }
-    return result;
-}
+//     for(int i=0; i < len; i++)
+//     {
+//         cout << "yes" << endl;
+//         Ctxt rotatedVec(fixedVec);   //copy vec
+//         ea.rotate(rotatedVec, -i);   //rotate it i right (-i left)
+//         rotatedVec *= _diagonalMatrix[i];
+//         result += rotatedVec;
+//     }
+//     return result;
+// }
 
 
 
@@ -316,7 +332,7 @@ int main()
     long m = 0;                   // Specific modulus
 	long p = 113;                 // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 16;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 18;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 0;                   // Degree of the field extension [default=1]
@@ -338,15 +354,26 @@ int main()
 
     ZZX G;
     EncryptedArray ea(context, G);
-    cout << "nslots: " ea.size() << endl;
+    cout << "nslots: " << ea.size() << endl;
     vector<vector<long> > matrix{{1,2,3},{4,5,6},{7,8,9}};
     PTMatrix ptMatrix1(matrix,false);
     ptMatrix1.print();
     ptMatrix1.printDiagonal();
 
-    // EncryptedMatrix encMatrix = ptMatrix1.encrypt(ea, publicKey, true);
-    // PTMatrix ptMatrix2 = encMatrix.decrypt(ea, secretKey);
-    // ptMatrix2.print();
+    PTMatrix ptMatrix2(3, 2, false);
+    ptMatrix2.print();
+
+    PTMatrix ptMatrix3 = ptMatrix1 * ptMatrix2;
+    ptMatrix3.print();
+
+    vector<long> flatMatrix = PTMatrix::MatrixEncoding(matrix);
+    for(int i = 0; i < flatMatrix.size(); i++)
+        cout << flatMatrix[i] << ' ';
+    cout << endl;
+
+    EncryptedMatrix encMatrix = ptMatrix1.encrypt(ea, publicKey, false);
+    PTMatrix ptMatrix4 = encMatrix.decrypt(ea, secretKey);
+    ptMatrix4.print();
 
     // vector<long> v1{1,2,3};
     // v1.resize(ea.size(), 0);
