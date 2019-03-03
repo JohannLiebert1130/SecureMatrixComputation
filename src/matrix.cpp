@@ -221,50 +221,50 @@ EncryptedMatrix PTMatrix::encrypt(const FHEPubKey& publicKey, bool saveRow) cons
     return encrypt(ea, publicKey, saveRow);
 }
 
-// PTMatrix PTMatrix::sigmaPermutation(unsigned int d){
-//     long dSquare = d * d;
-//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-//     for(int l=0; l < dSquare; l++)
-//         for(int i=0; i < d; i++)
-//             for(int j=0; j < d; j++)
-//             {
-//                 if(l == d*i + myModulu(i+j,d)) rowMatrix[d*i+j][l] = 1;
-//             }
-//     return PTMatrix(rowMatrix, true);
-// }
-// PTMatrix PTMatrix::tauPermutation(unsigned int d){
-//     long dSquare = d * d;
-//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-//     for(int l=0; l < dSquare; l++)
-//         for(int i=0; i < d; i++)
-//             for(int j=0; j < d; j++)
-//             {
-//                 if(l == d*myModulu(i+j,d) + j) rowMatrix[d*i+j][l] = 1;
-//             }
-//     return PTMatrix(rowMatrix, true);
-// }
-// PTMatrix PTMatrix::phiPermutation(unsigned int d, int k){
-//     long dSquare = d * d;
-//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-//     for(int l=0; l < dSquare; l++)
-//         for(int i=0; i < d; i++)
-//             for(int j=0; j < d; j++)
-//             {
-//                 if(l == d*i + myModulu(k+j,d)) rowMatrix[d*i+j][l] = 1;
-//             }
-//     return PTMatrix(rowMatrix, true);
-// }
-// PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
-//     long dSquare = d * d;
-//     vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
-//     for(int l=0; l < dSquare; l++)
-//         for(int i=0; i < d; i++)
-//             for(int j=0; j < d; j++)
-//             {
-//                 if(l == d*myModulu(i+k,d) + j) rowMatrix[d*i+j][l] = 1;
-//             }
-//     return PTMatrix(rowMatrix, true);
-// }
+PTMatrix PTMatrix::sigmaPermutation(unsigned int d){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*i + myModulu(i+j,d)) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, false, false);
+}
+PTMatrix PTMatrix::tauPermutation(unsigned int d){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*myModulu(i+j,d) + j) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, false, false);
+}
+PTMatrix PTMatrix::phiPermutation(unsigned int d, int k){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*i + myModulu(k+j,d)) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, false, false);
+}
+PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d*myModulu(i+k,d) + j) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, false, false);
+}
 
 
 
@@ -385,7 +385,13 @@ int main()
     // ea.decrypt(ctxt1, secretKey, result);
     // cout << result[0] << ' ' << result[1] << ' ' << result[2] << endl;
 
-    // PTMatrix sigma = PTMatrix::sigmaPermutation(3);
-    // sigma.print();
+    PTMatrix sigma = PTMatrix::sigmaPermutation(3);
+    sigma.print();
+    PTMatrix tau = PTMatrix::tauPermutation(3);
+    tau.print();
+    PTMatrix phi = PTMatrix::phiPermutation(3,1);
+    phi.print();
+    PTMatrix psi = PTMatrix::psiPermutation(3,1);
+    psi.print();
     return 0;
 }
