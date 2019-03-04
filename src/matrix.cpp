@@ -353,6 +353,8 @@ Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
     
     Ctxt fixedVec = vec;
 
+    Timer shiftOperation;
+    shiftOperation.start();
     if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
@@ -362,7 +364,11 @@ Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
             fixedVec+=copyVec;
         }
     }
-    
+    shiftOperation.stop();
+    std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
+
+    Timer lintrans1Inner;
+    lintrans1Inner.start();
     for(int i=-d+1; i < d; i++)
     {
         Ctxt rotatedVec(fixedVec);   //copy vec
@@ -370,6 +376,8 @@ Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
         rotatedVec.multiplyBy(_diagonalMatrix[myModulu(i, len)]);
         result += rotatedVec;
     }
+    lintrans1Inner.stop();
+    std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
 
     return result;
 }
@@ -482,15 +490,48 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
     EncryptedArray ea(vec.getContext());
 
     vector<Ctxt> A(_d, Ctxt(vec.getPubKey())), B(_d, Ctxt(vec.getPubKey()));
-    A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
+
+    Timer a0Init;
+	a0Init.start();
+    Timer sigma;
+    sigma.start();
+    EncryptedMatrix sigmaMatrix = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey());
+    sigma.stop();
+    std::cout << "Time taken for the Encrypted sigmaMatrix: " << sigma.elapsed_time() << std::endl;
+
+    Timer lintrans1;
+    lintrans1.start();
+    A[0] = sigmaMatrix.LinTrans1(getRowMatrix(), _d);
+    lintrans1.stop();
+    std::cout << "Time taken for the LinTrans1: " << lintrans1.elapsed_time() << std::endl;
+
+    //A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
+    a0Init.stop();
+	std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
+
+    Timer b0Init;
+	b0Init.start();
     B[0] = PTMatrix::tauPermutation(_d).encrypt(vec.getPubKey()).LinTrans2(other.getRowMatrix(), _d);
+    b0Init.stop();
+	std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
 
    for(int k = 1; k < _d; k++)
    {
+        Timer akInit;
+	    akInit.start();
         A[k] = PTMatrix::phiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans3(A[0], _d, k);
+        akInit.stop();
+	    std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
+
+         Timer bkInit;
+	    bkInit.start();
         B[k] = PTMatrix::psiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans4(B[0], _d, k);
+        bkInit.stop();
+	    std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
    }
 
+    Timer multiplySum;
+	multiplySum.start();
    Ctxt result = A[0];
    result.multiplyBy(B[0]) ;
    for(int k = 1; k < _d; k++)
@@ -499,6 +540,8 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
        temp *= B[k];
        result += temp;
    }
+   multiplySum.stop();
+	std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
     return result;
 }
 
@@ -515,9 +558,10 @@ int main()
 	long k = 80;                  // Security parameter [default=80] 
     long s = 0;                   // Minimum number of slots [default=0]
     
-    
+    Timer tInit;
+	tInit.start();
     m = FindM(k, L, c, p, d, s, 0);           // Find a value for m given the specified values
-    cout << "m:" << m << endl;
+    
     std::cout << "Initializing context... " << std::flush;
 	FHEcontext context(m, p, r); 	          // Initialize context
 	buildModChain(context, L, c);             // Modify the context, adding primes to the modulus chain
@@ -531,16 +575,25 @@ int main()
 
     ZZX G;
     EncryptedArray ea(context, G);
+
+    tInit.stop();
+	std::cout << "Time taken for the initialization: " << tInit.elapsed_time() << std::endl;
+    cout << "m:" << m << endl;
     cout << "nslots: " << ea.size() << endl;
 
-        int dimension = 4;
-    // vector<vector<long> > matrix{{1,2},{3,4}};
+    int dimension = 4;
+
+    Timer ptMatrixInit;
+	ptMatrixInit.start();
     PTMatrix ptMatrix1(dimension,2, true);
     EncryptedMatrix encMatrix1 = ptMatrix1.encrypt(publicKey, true);
 
-    ptMatrix1.print();
+    
     PTMatrix ptMatrix2(dimension, 2, true);
     EncryptedMatrix encMatrix2 = ptMatrix2.encrypt(publicKey, true);
+    ptMatrixInit.stop();
+    std::cout << "Time taken for the ptMatrix initialization: " << ptMatrixInit.elapsed_time() << std::endl;
+    ptMatrix1.print();
     ptMatrix2.print();
 
     PTMatrix ptResult = ptMatrix1 * ptMatrix2;
