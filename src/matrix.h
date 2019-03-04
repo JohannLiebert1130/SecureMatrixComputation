@@ -106,9 +106,9 @@ public:
     //matrix multyplication by vector
     Ctxt operator*(const Ctxt& vec) const;
 
-    Ctxt LinTrans1(const Ctxt& vec, int d, FHESecKey secretKey) const;
-    Ctxt LinTrans2(const Ctxt& vec, int d, FHESecKey secretKey) const;
-    Ctxt LinTrans3(const Ctxt& vec, int d, int k, FHESecKey secretKey) const;
+    Ctxt LinTrans1(const Ctxt& vec, int d) const;
+    Ctxt LinTrans2(const Ctxt& vec, int d) const;
+    Ctxt LinTrans3(const Ctxt& vec, int d, int k) const;
     Ctxt LinTrans4(const Ctxt& vec, int d, int k) const;
 
     // Matrix Encoding Method,

@@ -322,7 +322,7 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d, FHESecKey secretKey) const{
+Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
     int len = _diagonalMatrix.size();
@@ -352,7 +352,7 @@ Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d, FHESecKey secretKey) con
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans2(const Ctxt& vec, int d, FHESecKey secretKey) const{
+Ctxt EncryptedMatrix::LinTrans2(const Ctxt& vec, int d) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
     int len = _diagonalMatrix.size();
@@ -381,7 +381,7 @@ Ctxt EncryptedMatrix::LinTrans2(const Ctxt& vec, int d, FHESecKey secretKey) con
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, int d, int k, FHESecKey secretKey) const{
+Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, int d, int k) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
     int len = _diagonalMatrix.size();
@@ -399,77 +399,18 @@ Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, int d, int k, FHESecKey secretK
         }
     }
     
-    vector<long> temp(ea.size(), 0);
 
     Ctxt rotatedVec(fixedVec);   //copy vec
     ea.rotate(rotatedVec, -k);   //rotate it i right (-i left)
-
-     cout << "rotatedVec:" << endl;
-    ea.decrypt(rotatedVec, secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-
-    cout << "diagonal vec:" << endl;
-    ea.decrypt(_diagonalMatrix[k], secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-
     rotatedVec.multiplyBy(_diagonalMatrix[k]);
-
-
-    cout << "result v1:" << endl;
-    ea.decrypt(rotatedVec, secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-
     result = rotatedVec;
-
- 
-    /************/
-    vector<long> t1{2,4,3,1,2,4,3,1};
-    vector<long> t2{1,0,1,0,0,0,0,0};
-    Ctxt c1(vec.getPubKey()), c2(vec.getPubKey());
-    ea.encrypt(c1, vec.getPubKey(), t1);
-    ea.encrypt(c2, vec.getPubKey(), t2);
-    Ctxt res(vec.getPubKey());
-    c1 *= c2;
-    res = c1;
-    ea.decrypt(res, secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-    
 
 
     rotatedVec =fixedVec;   //copy vec
     ea.rotate(rotatedVec, d-k);   //rotate it i right (-i left)
-
-
-    cout << "rotated vector:" << endl;
-    ea.decrypt(rotatedVec, secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-
-    cout << "diagonal vector:" << endl;
-    ea.decrypt(_diagonalMatrix[myModulu(k-d, len)], secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-
     rotatedVec.multiplyBy(_diagonalMatrix[myModulu(k-d, len)]);
 
     result += rotatedVec;
-
-    cout << "result v2:" << endl;
-    ea.decrypt(result, secretKey, temp);
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
-
     return result;
 }
 
@@ -508,39 +449,44 @@ Ctxt EncryptedMatrix::getRowMatrix()
 {
     return _rowMatrix;
 }
-// Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other) 
-// {
-//     //check sizes
-//     if(_d != other.getD())
-//         throw MatricesSizesNotMatch(_d, other.getD());
 
-//     Ctxt vec = _diagonalMatrix[0]; //save it for faster vec.getPubKey() in the loop
-//     EncryptedArray ea(vec.getContext());
+Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other) 
+{
+    //check sizes
+    if(_d != other.getD())
+        throw MatricesSizesNotMatch(_d, other.getD());
 
-//     vector<Ctxt> A(_d), B(_d);
-//     A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
-//     B[0] = PTMatrix::tauPermutation(_d).encrypt(vec.getPubKey()).LinTrans2(other.getRowMatrix(), _d);
+    Ctxt vec = _diagonalMatrix[0]; //save it for faster vec.getPubKey() in the loop
+    EncryptedArray ea(vec.getContext());
 
-//    for(int k = 1; k < _d; k++)
-//    {
-//         A[k] = PTMatrix::phiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans3(A[0], _d, k);
-//         B[k] = PTMatrix::psiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans4(B[0], _d, k);
-//    }
+    vector<Ctxt> A(_d, Ctxt(vec.getPubKey())), B(_d, Ctxt(vec.getPubKey()));
+    A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
+    B[0] = PTMatrix::tauPermutation(_d).encrypt(vec.getPubKey()).LinTrans2(other.getRowMatrix(), _d);
 
-//    Ctxt result = A[0] *B[0] ;
-//    for(int k = 1; k < _d; k++)
-//     result += A[k] * B[k];
+   for(int k = 1; k < _d; k++)
+   {
+        A[k] = PTMatrix::phiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans3(A[0], _d, k);
+        B[k] = PTMatrix::psiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans4(B[0], _d, k);
+   }
 
-//     return result;
-// }
+   Ctxt result = A[0];
+   result.multiplyBy(B[0]) ;
+   for(int k = 1; k < _d; k++)
+   {
+       Ctxt temp = A[k];
+       temp *= B[k];
+       result += temp;
+   }
+    return result;
+}
 
 
 int main()
 {
     long m = 0;                   // Specific modulus
-	long p = 2;                 // Plaintext base [default=2], should be a prime number
+	long p = 113;                 // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 16;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 400;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 0;                   // Degree of the field extension [default=1]
@@ -548,7 +494,7 @@ int main()
     long s = 0;                   // Minimum number of slots [default=0]
     
     m = FindM(k, L, c, p, d, s, 0);           // Find a value for m given the specified values
-
+    cout << "m:" << m << endl;
     std::cout << "Initializing context... " << std::flush;
 	FHEcontext context(m, p, r); 	          // Initialize context
 	buildModChain(context, L, c);             // Modify the context, adding primes to the modulus chain
@@ -564,64 +510,59 @@ int main()
     EncryptedArray ea(context, G);
     cout << "nslots: " << ea.size() << endl;
 
-
-    vector<vector<long> > matrix{{1,2},{3,4}};
-    PTMatrix ptMatrix1(matrix,false, true);
+        int dimension = 4;
+    // vector<vector<long> > matrix{{1,2},{3,4}};
+    PTMatrix ptMatrix1(dimension,2, true);
     EncryptedMatrix encMatrix1 = ptMatrix1.encrypt(publicKey, true);
 
     ptMatrix1.print();
-    PTMatrix ptMatrix2(2, 2, true);
+    PTMatrix ptMatrix2(dimension, 2, true);
     EncryptedMatrix encMatrix2 = ptMatrix2.encrypt(publicKey, true);
     ptMatrix2.print();
 
-    vector<long> v1{1,2};
-    v1.resize(ea.size(), 0);
-    Ctxt encV1(publicKey);
-    ea.encrypt(encV1, publicKey, v1);
-    Ctxt ctxt1 = encMatrix1 * encV1;
-    
-    vector<long> result(ea.size(), 0);
-    ea.decrypt(ctxt1, secretKey, result);
-;
-    for(int i = 0; i < 2; i++)
-        cout << result[i] << ' ';
-    cout << endl;
+    PTMatrix ptResult = ptMatrix1 * ptMatrix2;
+    cout << "matrix multiplication result:" << endl;
+    ptResult.print();
 
-
-    int dimension = 2;
-    vector<Ctxt> A(dimension, Ctxt(publicKey)), B(dimension, Ctxt(publicKey));
-    A[0] = PTMatrix::sigmaPermutation(dimension).encrypt(publicKey).LinTrans1(encMatrix1.getRowMatrix(), dimension, secretKey);
-
+    Ctxt result = encMatrix1 * encMatrix2;
     vector<long> temp(ea.size(), 0);
-    ea.decrypt(A[0], secretKey, temp);
-    cout << "A[0]:" << endl;
-    for(int i = 0; i < ea.size(); i++)
+    ea.decrypt(result, secretKey, temp);
+    for(int i = 0; i < dimension * dimension; i++)
         cout << temp[i] << ' ';
     cout << endl;
 
-    B[0] = PTMatrix::tauPermutation(dimension).encrypt(publicKey).LinTrans2(encMatrix2.getRowMatrix(), dimension, secretKey);
+//     A[0] = PTMatrix::sigmaPermutation(dimension).encrypt(publicKey).LinTrans1(encMatrix1.getRowMatrix(), dimension, secretKey);
 
-    ea.decrypt(B[0], secretKey, temp);
-    cout << "B[0]:" << endl;
-    for(int i = 0; i < ea.size(); i++)
-        cout << temp[i] << ' ';
-    cout << endl;
+//     vector<long> temp(ea.size(), 0);
+//     ea.decrypt(A[0], secretKey, temp);
+//     // cout << "A[0]:" << endl;
+//     // for(int i = 0; i < ea.size(); i++)
+//     //     cout << temp[i] << ' ';
+//     // cout << endl;
 
-   for(int k = 1; k < dimension; k++)
-   {
-        A[k] = PTMatrix::phiPermutation(dimension, k).encrypt(publicKey).LinTrans3(A[0], dimension, k, secretKey);
-        ea.decrypt(A[k], secretKey, temp);
-        cout << "A[" << k << "]:" << endl;
-        for(int i = 0; i < ea.size(); i++)
-            cout << temp[i] << ' ';
-        cout << endl;
-        B[k] = PTMatrix::psiPermutation(dimension, k).encrypt(publicKey).LinTrans4(B[0], dimension, k);
-        ea.decrypt(B[k], secretKey, temp);
-        cout << "B[" << k << "]:" << endl;
-        for(int i = 0; i < ea.size(); i++)
-            cout << temp[i] << ' ';
-        cout << endl;
-   }
+//     B[0] = PTMatrix::tauPermutation(dimension).encrypt(publicKey).LinTrans2(encMatrix2.getRowMatrix(), dimension, secretKey);
+
+//     ea.decrypt(B[0], secretKey, temp);
+//     // cout << "B[0]:" << endl;
+//     // for(int i = 0; i < ea.size(); i++)
+//     //     cout << temp[i] << ' ';
+//     // cout << endl;
+
+//    for(int k = 1; k < dimension; k++)
+//    {
+//         A[k] = PTMatrix::phiPermutation(dimension, k).encrypt(publicKey).LinTrans3(A[0], dimension, k, secretKey);
+//         // ea.decrypt(A[k], secretKey, temp);
+//         // cout << "A[" << k << "]:" << endl;
+//         // for(int i = 0; i < ea.size(); i++)
+//         //     cout << temp[i] << ' ';
+//         // cout << endl;
+//         B[k] = PTMatrix::psiPermutation(dimension, k).encrypt(publicKey).LinTrans4(B[0], dimension, k);
+//         // ea.decrypt(B[k], secretKey, temp);
+//         // cout << "B[" << k << "]:" << endl;
+//         // for(int i = 0; i < ea.size(); i++)
+//         //     cout << temp[i] << ' ';
+//         // cout << endl;
+//    }
 
 //    Ctxt res = A[0];
 //    res *= B[0];
@@ -631,16 +572,16 @@ int main()
 //        temp *= B[k];
 //        res += temp;
 //    }
-
-    // ea.decrypt(res, secretKey, temp);
-    // for(int i = 0; i < dimension * dimension; i++)
-    //     cout << temp[i] << ' ';
-    // cout << endl;
+//     cout << endl;
+//     ea.decrypt(res, secretKey, temp);
+//     for(int i = 0; i < dimension * dimension; i++)
+//         cout << temp[i] << ' ';
+//     cout << endl;
     
 
-    PTMatrix::sigmaPermutation(dimension).print();
-    PTMatrix::tauPermutation(dimension).print();
-    PTMatrix::phiPermutation(dimension, 1).print();
+    // PTMatrix::sigmaPermutation(32).print();
+    // PTMatrix::tauPermutation(dimension).print();
+    // PTMatrix::phiPermutation(dimension, 1).print();
 
     return 0;
 }
