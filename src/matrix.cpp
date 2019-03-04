@@ -30,6 +30,28 @@ void printNum(long num, int size){
         cout << " ";
 }
 
+#define VEC_SIZE 4
+
+// Simple class to measure time for each method
+class Timer
+{
+public:
+    void start() { m_start = my_clock(); }
+    void stop() { m_stop = my_clock(); }
+    double elapsed_time() const {
+        return m_stop - m_start;
+    }
+
+private:
+    double m_start, m_stop;
+    double my_clock() const {
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+        return tv.tv_sec + tv.tv_usec * 1e-6;
+    }
+};
+
+
 /* --------------------- PTMatrix (Plain Text Matrix) class --------------------------*/
 
 vector<vector<long> > PTMatrix::Row2Diagonal(const vector<vector<long> >& rowMatrix)
@@ -492,6 +514,7 @@ int main()
 	long d = 0;                   // Degree of the field extension [default=1]
 	long k = 80;                  // Security parameter [default=80] 
     long s = 0;                   // Minimum number of slots [default=0]
+    
     
     m = FindM(k, L, c, p, d, s, 0);           // Find a value for m given the specified values
     cout << "m:" << m << endl;
