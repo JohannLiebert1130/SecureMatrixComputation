@@ -363,7 +363,7 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
     //TODO: Still not perfectlly working
     
     Ctxt fixedVec = _rowMatrix;
-
+   
     Timer shiftOperation;
     shiftOperation.start();
     if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
@@ -375,11 +375,11 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
             fixedVec+=copyVec;
         }
     }
-    shiftOperation.stop();
-    std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
+   shiftOperation.stop();
+   std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
 
-    Timer lintrans1Inner;
-    lintrans1Inner.start();
+   Timer lintrans1Inner;
+   lintrans1Inner.start();
     for(int i=-_d+1; i < _d; i++)
     {
         Ctxt rotatedVec(fixedVec);   //copy vec
@@ -387,8 +387,8 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
         rotatedVec.multByConstant(matrix[myModulu(i, len)]);
         result += rotatedVec;
     }
-    lintrans1Inner.stop();
-    std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
+   lintrans1Inner.stop();
+   std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
 
     return result;
 }
@@ -504,45 +504,42 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 
     Timer a0Init;
 	a0Init.start();
-    Timer sigma;
-    sigma.start();
+  //  Timer sigma;
+   // sigma.start();
     vector<ZZX> sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
-    sigma.stop();
-    std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
+   // sigma.stop();
+   // std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
 
-    Timer lintrans1;
-    lintrans1.start();
     A[0] = LinTrans1(sigmaMatrix);
-    lintrans1.stop();
-    std::cout << "Time taken for the LinTrans1: " << lintrans1.elapsed_time() << std::endl;
+    a0Init.stop();
+    std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
 
     //A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
-    a0Init.stop();
-	std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
+   
 
     Timer b0Init;
-	b0Init.start();
+    b0Init.start();
     B[0] = other.LinTrans2(PTMatrix::tauPermutation(_d).DiagonalEncoding(ea));
     b0Init.stop();
-	std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
+    std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
 
    for(int k = 1; k < _d; k++)
    {
         Timer akInit;
-	    akInit.start();
+        akInit.start();
         A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).DiagonalEncoding(ea), _d, k);
         akInit.stop();
-	    std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
+        std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
 
-         Timer bkInit;
-	    bkInit.start();
+        Timer bkInit;
+        bkInit.start();
         B[k] = LinTrans4(B[0], _d, k);
         bkInit.stop();
-	    std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
+        std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
    }
 
-    Timer multiplySum;
-	multiplySum.start();
+   Timer multiplySum;
+   multiplySum.start();
    Ctxt result = A[0];
    result.multiplyBy(B[0]) ;
    for(int k = 1; k < _d; k++)
@@ -552,7 +549,7 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
        result += temp;
    }
    multiplySum.stop();
-	std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
+   std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
     return result;
 }
 
@@ -560,19 +557,21 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 int main()
 {
     long m = 0;                   // Specific modulus
-	long p = 113;                 // Plaintext base [default=2], should be a prime number
+	long p =32003;//16487                 // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 10;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 20;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
-	long d = 0;                   // Degree of the field extension [default=1]
+	long d = 1;                   // Degree of the field extension [default=1]
 	long k = 80;                  // Security parameter [default=80] 
-    long s = 0;                   // Minimum number of slots [default=0]
+    	long s = 0;                   // Minimum number of slots [default=0]
     
     Timer tInit;
 	tInit.start();
     m = FindM(k, L, c, p, d, s, 0);           // Find a value for m given the specified values
-    
+    cout<<"Findm="<<m<<endl;
+    m=32003-1;//1907 is a safe prime
+  // m=16487-1; 
     std::cout << "Initializing context... " << std::flush;
 	FHEcontext context(m, p, r); 	          // Initialize context
 	buildModChain(context, L, c);             // Modify the context, adding primes to the modulus chain
@@ -591,8 +590,8 @@ int main()
 	std::cout << "Time taken for the initialization: " << tInit.elapsed_time() << std::endl;
     cout << "m:" << m << endl;
     cout << "nslots: " << ea.size() << endl;
-
-    int dimension = 4;
+    cout<<"securitylevel="<<context.securityLevel()<<endl;
+    int dimension = 32;
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
