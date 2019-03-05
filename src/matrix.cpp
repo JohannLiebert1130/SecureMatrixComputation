@@ -355,21 +355,21 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
+Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
-    int len = _diagonalMatrix.size();
+    int len = matrix.size();
     
     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = vec;
+    Ctxt fixedVec = _rowMatrix;
 
     Timer shiftOperation;
     shiftOperation.start();
-    if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
+    if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
-        for(unsigned int length =_d; length < ea.size(); length*=2){
+        for(unsigned int length =len; length < ea.size(); length*=2){
             Ctxt copyVec = fixedVec;
             ea.shift(copyVec, length);  //shift length to right
             fixedVec+=copyVec;
@@ -380,11 +380,11 @@ Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
 
     Timer lintrans1Inner;
     lintrans1Inner.start();
-    for(int i=-d+1; i < d; i++)
+    for(int i=-_d+1; i < _d; i++)
     {
         Ctxt rotatedVec(fixedVec);   //copy vec
         ea.rotate(rotatedVec, -i);   //rotate it i right (-i left)
-        rotatedVec.multiplyBy(_diagonalMatrix[myModulu(i, len)]);
+        rotatedVec.multByConstant(matrix[myModulu(i, len)]);
         result += rotatedVec;
     }
     lintrans1Inner.stop();
@@ -393,14 +393,14 @@ Ctxt EncryptedMatrix::LinTrans1(const Ctxt& vec, int d) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans2(const Ctxt& vec, int d) const{
+Ctxt EncryptedMatrix::LinTrans2(const vector<ZZX>& matrix) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
-    int len = _diagonalMatrix.size();
+    int len = matrix.size();
     
     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = vec;
+    Ctxt fixedVec = _rowMatrix;
     if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
@@ -411,29 +411,29 @@ Ctxt EncryptedMatrix::LinTrans2(const Ctxt& vec, int d) const{
         }
     }
     
-    for(int i=0; i < d; i++)
+    for(int i=0; i < _d; i++)
     {
         Ctxt rotatedVec(fixedVec);   //copy vec
-        ea.rotate(rotatedVec, -(d*i));   //rotate it i right (-i left)
-        rotatedVec.multiplyBy(_diagonalMatrix[d*i]);
+        ea.rotate(rotatedVec, -(_d*i));   //rotate it i right (-i left)
+        rotatedVec.multByConstant(matrix[_d*i]);
         result += rotatedVec;
     }
 
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, int d, int k) const{
+Ctxt EncryptedMatrix::LinTrans3(const vector<ZZX>& matrix, int k) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
-    int len = _diagonalMatrix.size();
+    int len = matrix.size();
     
     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = vec;
-    if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
+    Ctxt fixedVec = _rowMatrix;
+    if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
-        for(unsigned int length =_d; length < ea.size(); length*=2){
+        for(unsigned int length =len; length < ea.size(); length*=2){
             Ctxt copyVec = fixedVec;
             ea.shift(copyVec, length);  //shift length to right
             fixedVec+=copyVec;
@@ -443,30 +443,30 @@ Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, int d, int k) const{
 
     Ctxt rotatedVec(fixedVec);   //copy vec
     ea.rotate(rotatedVec, -k);   //rotate it i right (-i left)
-    rotatedVec.multiplyBy(_diagonalMatrix[k]);
+    rotatedVec.multByConstant(matrix[k]);
     result = rotatedVec;
 
 
     rotatedVec =fixedVec;   //copy vec
-    ea.rotate(rotatedVec, d-k);   //rotate it i right (-i left)
-    rotatedVec.multiplyBy(_diagonalMatrix[myModulu(k-d, len)]);
+    ea.rotate(rotatedVec, _d-k);   //rotate it i right (-i left)
+    rotatedVec.multByConstant(matrix[myModulu(k-_d, len)]);
 
     result += rotatedVec;
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans4(const Ctxt& vec, int d, int k) const{
+Ctxt EncryptedMatrix::LinTrans4(int k) const{
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
-    int len = _diagonalMatrix.size();
+    int len = _d * _d;
     
     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = vec;
-    if(ea.size() != _d) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
+    Ctxt fixedVec = _rowMatrix;
+    if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
-        for(unsigned int length =_d; length < ea.size(); length*=2){
+        for(unsigned int length =len; length < ea.size(); length*=2){
             Ctxt copyVec = fixedVec;
             ea.shift(copyVec, length);  //shift length to right
             fixedVec+=copyVec;
@@ -475,7 +475,7 @@ Ctxt EncryptedMatrix::LinTrans4(const Ctxt& vec, int d, int k) const{
     
 
     Ctxt rotatedVec(fixedVec);   //copy vec
-    ea.rotate(rotatedVec, -(d*k));   //rotate it i right (-i left)
+    ea.rotate(rotatedVec, -(_d*k));   //rotate it i right (-i left)
     result = rotatedVec;
 
     return result;
@@ -584,7 +584,8 @@ int main()
 	secretKey.GenSecKey(w);                          // Actually generate a secret key with Hamming weight
 	addSome1DMatrices(secretKey);                    // Extra information for relinearization
 
-    ZZX G =  context.alMod.getFactorsOverZZ()[0]; 
+    ZZX G;
+     //G =  context.alMod.getFactorsOverZZ()[0]; 
     EncryptedArray ea(context, G);
 
     tInit.stop();
@@ -596,11 +597,11 @@ int main()
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
-    PTMatrix ptMatrix1(dimension,2, true);
+    PTMatrix ptMatrix1(dimension,3, true);
     EncryptedMatrix encMatrix1 = ptMatrix1.encrypt(publicKey, true);
 
     
-    PTMatrix ptMatrix2(dimension, 2, true);
+    PTMatrix ptMatrix2(dimension, 3, true);
     EncryptedMatrix encMatrix2 = ptMatrix2.encrypt(publicKey, true);
     ptMatrixInit.stop();
     std::cout << "Time taken for the ptMatrix initialization: " << ptMatrixInit.elapsed_time() << std::endl;
