@@ -83,6 +83,8 @@ public:
     static PTMatrix phiPermutation(unsigned int d, int k);
     static PTMatrix psiPermutation(unsigned int d, int k);
 
+    vector<ZZX> PTMatrix::DiagonalEncoding(const EncryptedArray& ea);
+
 };
 
 //This class represents an encrypted matrix.

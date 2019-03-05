@@ -288,6 +288,17 @@ PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
     return PTMatrix(rowMatrix, false, false);
 }
 
+vector<ZZX> PTMatrix::DiagonalEncoding(const EncryptedArray& ea)
+{
+    vector<ZZX> zzxVec(_d);
+    for(int i = 0; i < _d; i++)
+    {
+        vector<long> temp = _diagonalMatrix[i];
+        temp.resize(ea.size());
+        ea.encode(zzxVec[i], temp);
+    }
+    return zzxVec;
+}
 
 
 /* --------------------- EncryptedMatrix class -------------*/
@@ -551,7 +562,7 @@ int main()
     long m = 0;                   // Specific modulus
 	long p = 113;                 // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 400;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 390;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 0;                   // Degree of the field extension [default=1]
@@ -573,7 +584,7 @@ int main()
 	secretKey.GenSecKey(w);                          // Actually generate a secret key with Hamming weight
 	addSome1DMatrices(secretKey);                    // Extra information for relinearization
 
-    ZZX G;
+    ZZX G =  context.alMod.getFactorsOverZZ()[0]; 
     EncryptedArray ea(context, G);
 
     tInit.stop();
@@ -581,7 +592,7 @@ int main()
     cout << "m:" << m << endl;
     cout << "nslots: " << ea.size() << endl;
 
-    int dimension = 4;
+    int dimension = 2;
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
@@ -607,57 +618,6 @@ int main()
         cout << temp[i] << ' ';
     cout << endl;
 
-//     A[0] = PTMatrix::sigmaPermutation(dimension).encrypt(publicKey).LinTrans1(encMatrix1.getRowMatrix(), dimension, secretKey);
-
-//     vector<long> temp(ea.size(), 0);
-//     ea.decrypt(A[0], secretKey, temp);
-//     // cout << "A[0]:" << endl;
-//     // for(int i = 0; i < ea.size(); i++)
-//     //     cout << temp[i] << ' ';
-//     // cout << endl;
-
-//     B[0] = PTMatrix::tauPermutation(dimension).encrypt(publicKey).LinTrans2(encMatrix2.getRowMatrix(), dimension, secretKey);
-
-//     ea.decrypt(B[0], secretKey, temp);
-//     // cout << "B[0]:" << endl;
-//     // for(int i = 0; i < ea.size(); i++)
-//     //     cout << temp[i] << ' ';
-//     // cout << endl;
-
-//    for(int k = 1; k < dimension; k++)
-//    {
-//         A[k] = PTMatrix::phiPermutation(dimension, k).encrypt(publicKey).LinTrans3(A[0], dimension, k, secretKey);
-//         // ea.decrypt(A[k], secretKey, temp);
-//         // cout << "A[" << k << "]:" << endl;
-//         // for(int i = 0; i < ea.size(); i++)
-//         //     cout << temp[i] << ' ';
-//         // cout << endl;
-//         B[k] = PTMatrix::psiPermutation(dimension, k).encrypt(publicKey).LinTrans4(B[0], dimension, k);
-//         // ea.decrypt(B[k], secretKey, temp);
-//         // cout << "B[" << k << "]:" << endl;
-//         // for(int i = 0; i < ea.size(); i++)
-//         //     cout << temp[i] << ' ';
-//         // cout << endl;
-//    }
-
-//    Ctxt res = A[0];
-//    res *= B[0];
-//    for(int k = 1; k < dimension; k++)
-//    {
-//        Ctxt temp = A[k];
-//        temp *= B[k];
-//        res += temp;
-//    }
-//     cout << endl;
-//     ea.decrypt(res, secretKey, temp);
-//     for(int i = 0; i < dimension * dimension; i++)
-//         cout << temp[i] << ' ';
-//     cout << endl;
-    
-
-    // PTMatrix::sigmaPermutation(32).print();
-    // PTMatrix::tauPermutation(dimension).print();
-    // PTMatrix::phiPermutation(dimension, 1).print();
 
     return 0;
 }
