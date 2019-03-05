@@ -584,8 +584,7 @@ int main()
 	secretKey.GenSecKey(w);                          // Actually generate a secret key with Hamming weight
 	addSome1DMatrices(secretKey);                    // Extra information for relinearization
 
-    ZZX G;
-     //G =  context.alMod.getFactorsOverZZ()[0]; 
+    ZZX G =  context.alMod.getFactorsOverZZ()[0]; 
     EncryptedArray ea(context, G);
 
     tInit.stop();
