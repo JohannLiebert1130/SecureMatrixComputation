@@ -356,8 +356,8 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
 }
 
 Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
-    EncryptedArray ea(vec.getContext());
-    Ctxt result(vec.getPubKey());
+    EncryptedArray ea(_diagonalMatrix[0].getContext());
+    Ctxt result(_diagonalMatrix[0].getPubKey());
     int len = matrix.size();
     
     //TODO: Still not perfectlly working
@@ -394,8 +394,8 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
 }
 
 Ctxt EncryptedMatrix::LinTrans2(const vector<ZZX>& matrix) const{
-    EncryptedArray ea(vec.getContext());
-    Ctxt result(vec.getPubKey());
+    EncryptedArray ea(_diagonalMatrix[0].getContext());
+    Ctxt result(_diagonalMatrix[0].getPubKey());
     int len = matrix.size();
     
     //TODO: Still not perfectlly working
@@ -422,14 +422,14 @@ Ctxt EncryptedMatrix::LinTrans2(const vector<ZZX>& matrix) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans3(const vector<ZZX>& matrix, int k) const{
+Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, const vector<ZZX>& matrix, int d, int k){
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
     int len = matrix.size();
     
     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = _rowMatrix;
+    Ctxt fixedVec = vec;
     if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
@@ -448,21 +448,21 @@ Ctxt EncryptedMatrix::LinTrans3(const vector<ZZX>& matrix, int k) const{
 
 
     rotatedVec =fixedVec;   //copy vec
-    ea.rotate(rotatedVec, _d-k);   //rotate it i right (-i left)
-    rotatedVec.multByConstant(matrix[myModulu(k-_d, len)]);
+    ea.rotate(rotatedVec, d-k);   //rotate it i right (-i left)
+    rotatedVec.multByConstant(matrix[myModulu(k-d, len)]);
 
     result += rotatedVec;
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans4(int k) const{
+Ctxt EncryptedMatrix::LinTrans4(const Ctxt& vec, int d, int k){
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
-    int len = _d * _d;
+    int len = d * d;
     
     //TODO: Still not perfectlly working
     
-    Ctxt fixedVec = _rowMatrix;
+    Ctxt fixedVec = vec;
     if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
@@ -475,7 +475,7 @@ Ctxt EncryptedMatrix::LinTrans4(int k) const{
     
 
     Ctxt rotatedVec(fixedVec);   //copy vec
-    ea.rotate(rotatedVec, -(_d*k));   //rotate it i right (-i left)
+    ea.rotate(rotatedVec, -(d*k));   //rotate it i right (-i left)
     result = rotatedVec;
 
     return result;
@@ -506,13 +506,13 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 	a0Init.start();
     Timer sigma;
     sigma.start();
-    EncryptedMatrix sigmaMatrix = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey());
+    vector<ZZX> sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
     sigma.stop();
-    std::cout << "Time taken for the Encrypted sigmaMatrix: " << sigma.elapsed_time() << std::endl;
+    std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
 
     Timer lintrans1;
     lintrans1.start();
-    A[0] = sigmaMatrix.LinTrans1(getRowMatrix(), _d);
+    A[0] = LinTrans1(sigmaMatrix);
     lintrans1.stop();
     std::cout << "Time taken for the LinTrans1: " << lintrans1.elapsed_time() << std::endl;
 
@@ -522,7 +522,7 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 
     Timer b0Init;
 	b0Init.start();
-    B[0] = PTMatrix::tauPermutation(_d).encrypt(vec.getPubKey()).LinTrans2(other.getRowMatrix(), _d);
+    B[0] = other.LinTrans2(PTMatrix::tauPermutation(_d).DiagonalEncoding(ea));
     b0Init.stop();
 	std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
 
@@ -530,13 +530,13 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
    {
         Timer akInit;
 	    akInit.start();
-        A[k] = PTMatrix::phiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans3(A[0], _d, k);
+        A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).DiagonalEncoding(ea), _d, k);
         akInit.stop();
 	    std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
 
          Timer bkInit;
 	    bkInit.start();
-        B[k] = PTMatrix::psiPermutation(_d, k).encrypt(vec.getPubKey()).LinTrans4(B[0], _d, k);
+        B[k] = LinTrans4(B[0], _d, k);
         bkInit.stop();
 	    std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
    }
@@ -593,7 +593,7 @@ int main()
     cout << "m:" << m << endl;
     cout << "nslots: " << ea.size() << endl;
 
-    int dimension = 2;
+    int dimension = 4;
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
