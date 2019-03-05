@@ -562,7 +562,7 @@ int main()
     long m = 0;                   // Specific modulus
 	long p = 113;                 // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 390;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 10;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 0;                   // Degree of the field extension [default=1]
@@ -607,11 +607,17 @@ int main()
     ptMatrix1.print();
     ptMatrix2.print();
 
+    
     PTMatrix ptResult = ptMatrix1 * ptMatrix2;
     cout << "matrix multiplication result:" << endl;
     ptResult.print();
 
+    Timer totalTime;
+	totalTime.start();
     Ctxt result = encMatrix1 * encMatrix2;
+    totalTime.stop();
+	std::cout << "matrix mul total time " << totalTime.elapsed_time() << std::endl;
+
     vector<long> temp(ea.size(), 0);
     ea.decrypt(result, secretKey, temp);
     for(int i = 0; i < dimension * dimension; i++)
