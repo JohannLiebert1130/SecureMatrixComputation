@@ -1,13 +1,10 @@
 #include "matrix.h"
 #include <cstring>
-#include <algorithm>
 #include "FHEContext.h"
 #include "EvalMap.h"
 #include "powerful.h"
 #include "binio.h"
-#include "sample.h"
 
-NTL_CLIENT
 
 
 long FindM1(long k, long nBits, long c, long p, long d, long s, long chosen_m, bool verbose=false)
@@ -36,7 +33,7 @@ long FindM1(long k, long nBits, long c, long p, long d, long s, long chosen_m, b
   // Compute a bound on m, and make sure that it is not too large
   double cc = 1.0+(1.0/(double)c);
 
-  double dN = ceil(nBits*cc*(k+110)/7.2);
+  double dN = ceil((L+1)*FHE_pSize*cc*(k+110))/7.2);
   // FIXME: the bound for dN is not conservative enough...
   // this should be re-worked.
 
@@ -714,7 +711,7 @@ int main()
     long m = 0;                   // Specific modulus
 	long p =16487;//16487    32003             // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 250;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 18;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 1;                   // Degree of the field extension [default=1]
