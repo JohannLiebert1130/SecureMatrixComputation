@@ -787,7 +787,7 @@ int main()
     long prime;
     int dimension;
     cout << "dimension: ";
-    cin << dimension;
+    cin >> dimension;
     if (file.is_open())
     {
         while(!file.eof())
