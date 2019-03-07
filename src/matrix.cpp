@@ -723,7 +723,7 @@ void test(int dimension, long p)
     Timer tInit;
 	tInit.start();
     m = FindM1(k, L, c, p, d, s, 0, dimension, false);           // Find a value for m given the specified values
-    cout<<"Findm= "<<m<<endl;
+    
     //m=32003-1;//1907 is a safe prime
     // m=16487-1; 
     std::cout << "Initializing context... " << std::flush;
@@ -744,7 +744,8 @@ void test(int dimension, long p)
 
     tInit.stop();
 	std::cout << "Time taken for the initialization: " << tInit.elapsed_time() << std::endl;
-    cout << "m:" << m << endl;
+    cout << "current p is: " << p << endl;
+    cout << "m: " << m << endl;
     cout << "nslots: " << ea.size() << endl;
     
    
@@ -765,7 +766,7 @@ void test(int dimension, long p)
     
     PTMatrix ptResult = ptMatrix1 * ptMatrix2;
     cout << "matrix multiplication result:" << endl;
-    //ptResult.print();
+    ptResult.print();
 
     Timer totalTime;
 	totalTime.start();
@@ -777,7 +778,7 @@ void test(int dimension, long p)
     ea.decrypt(result, secretKey, temp);
     for(int i = 0; i < dimension * dimension; i++)
         cout << temp[i] << ' ';
-    cout << endl;
+    cout << endl << endl << endl << endl;
 
 }
 int main()
