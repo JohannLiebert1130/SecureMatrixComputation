@@ -4,6 +4,7 @@
 #include "EvalMap.h"
 #include "powerful.h"
 #include "binio.h"
+#include <fstream>
 
 
 
@@ -654,8 +655,8 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 
     vector<Ctxt> A(_d, Ctxt(vec.getPubKey())), B(_d, Ctxt(vec.getPubKey()));
 
-    Timer a0Init;
-	a0Init.start();
+    // Timer a0Init;
+	// a0Init.start();
     //  Timer sigma;
     // sigma.start();
     vector<ZZX> sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
@@ -663,35 +664,35 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
     // std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
 
     A[0] = LinTrans1(sigmaMatrix);
-    a0Init.stop();
-    std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
+    // a0Init.stop();
+    // std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
 
     //A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
    
 
-    Timer b0Init;
-    b0Init.start();
+    // Timer b0Init;
+    // b0Init.start();
     B[0] = other.LinTrans2(PTMatrix::tauPermutation(_d).DiagonalEncoding(ea));
-    b0Init.stop();
-    std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
+    // b0Init.stop();
+    // std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
 
     for(int k = 1; k < _d; k++)
     {
-            Timer akInit;
-            akInit.start();
-            A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).DiagonalEncoding(ea), _d, k);
-            akInit.stop();
-            std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
+        // Timer akInit;
+        // akInit.start();
+        A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).DiagonalEncoding(ea), _d, k);
+        // akInit.stop();
+        // std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
 
-            Timer bkInit;
-            bkInit.start();
-            B[k] = LinTrans4(B[0], _d, k);
-            bkInit.stop();
-            std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
+        // Timer bkInit;
+        // bkInit.start();
+        B[k] = LinTrans4(B[0], _d, k);
+        // bkInit.stop();
+        // std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
     }
 
-    Timer multiplySum;
-    multiplySum.start();
+    // Timer multiplySum;
+    // multiplySum.start();
     Ctxt result = A[0];
     result.multiplyBy(B[0]) ;
     for(int k = 1; k < _d; k++)
@@ -700,16 +701,15 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
         temp *= B[k];
         result += temp;
     }
-    multiplySum.stop();
-    std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
+    // multiplySum.stop();
+    // std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
     return result;
 }
 
-
-int main()
+void test(int dimension, long p)
 {
     long m = 0;                   // Specific modulus
-	long p = 113;//16487    32003             // Plaintext base [default=2], should be a prime number
+	//long p = 113;//16487    32003             // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
 	long L = 16;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
@@ -717,10 +717,12 @@ int main()
 	long d = 1;                   // Degree of the field extension [default=1]
 	long k = 80;                  // Security parameter [default=80] 
     long s = 0;                   // Minimum number of slots [default=0]
-    
+
+    //int dimension = 8; 
+
     Timer tInit;
 	tInit.start();
-    m = FindM1(k, L, c, p, d, s, 0, 0);           // Find a value for m given the specified values
+    m = FindM1(k, L, c, p, d, s, 0, dimension, false);           // Find a value for m given the specified values
     cout<<"Findm= "<<m<<endl;
     //m=32003-1;//1907 is a safe prime
     // m=16487-1; 
@@ -745,7 +747,7 @@ int main()
     cout << "m:" << m << endl;
     cout << "nslots: " << ea.size() << endl;
     
-    int dimension = 8;
+   
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
@@ -777,6 +779,30 @@ int main()
         cout << temp[i] << ' ';
     cout << endl;
 
+}
+int main()
+{
+    ifstream file("prime.txt");
+    string line;
+    long prime;
+    int dimension;
+    cout << "dimension: ";
+    cin << dimension;
+    if (file.is_open())
+    {
+        while(!file.eof())
+        {
+            getline(file, line); //get number of rows 
+            prime = stoi(line);
+            test(dimension, prime);
 
+        }
+        file.close();
+    }
+    else
+    {
+        return 1;
+    }
+    
     return 0;
 }
