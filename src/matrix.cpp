@@ -801,6 +801,7 @@ int main()
     }
     else
     {
+        cout << "file not exist" << endl;
         return 1;
     }
     
