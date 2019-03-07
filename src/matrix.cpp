@@ -7,7 +7,7 @@
 
 
 
-long FindM1(long k, long nBits, long c, long p, long d, long s, long chosen_m, bool verbose=false)
+long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int dim, bool verbose=false)
 {
   // get a lower-bound on the parameter N=phi(m):
   // 1. Each level in the modulus chain corresponds to pSize=p2Size/2
@@ -33,7 +33,7 @@ long FindM1(long k, long nBits, long c, long p, long d, long s, long chosen_m, b
   // Compute a bound on m, and make sure that it is not too large
   double cc = 1.0+(1.0/(double)c);
 
-  double dN = ceil((L+1)*FHE_pSize*cc*(k+110))/7.2);
+  double dN = ceil((L+1)*FHE_pSize*cc*(k+110)/7.2);
   // FIXME: the bound for dN is not conservative enough...
   // this should be re-worked.
 
@@ -132,7 +132,7 @@ long FindM1(long k, long nBits, long c, long p, long d, long s, long chosen_m, b
       /*************/
       long slots = n / ordP;
       
-      if (slots < 8192) continue;
+      if (slots < dim * dim * 2) continue;
       /*************/
 
 
@@ -709,9 +709,9 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 int main()
 {
     long m = 0;                   // Specific modulus
-	long p =16487;//16487    32003             // Plaintext base [default=2], should be a prime number
+	long p = 113;//16487    32003             // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 18;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 16;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 1;                   // Degree of the field extension [default=1]
@@ -745,7 +745,7 @@ int main()
     cout << "m:" << m << endl;
     cout << "nslots: " << ea.size() << endl;
     
-    int dimension = 32;
+    int dimension = 8;
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
