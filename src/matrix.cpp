@@ -517,8 +517,8 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
     
     Ctxt fixedVec = _rowMatrix;
    
-    Timer shiftOperation;
-    shiftOperation.start();
+    //Timer shiftOperation;
+    //shiftOperation.start();
     if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
@@ -528,11 +528,11 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
             fixedVec+=copyVec;
         }
     }
-   shiftOperation.stop();
-   std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
+   //shiftOperation.stop();
+   //std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
 
-   Timer lintrans1Inner;
-   lintrans1Inner.start();
+   //Timer lintrans1Inner;
+   //lintrans1Inner.start();
     for(int i=-_d+1; i < _d; i++)
     {
         Ctxt rotatedVec(fixedVec);   //copy vec
@@ -540,8 +540,8 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
         rotatedVec.multByConstant(matrix[myModulu(i, len)]);
         result += rotatedVec;
     }
-   lintrans1Inner.stop();
-   std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
+   //lintrans1Inner.stop();
+   //std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
 
     return result;
 }
@@ -759,13 +759,13 @@ void test(int dimension, long p)
     EncryptedMatrix encMatrix2 = ptMatrix2.encrypt(publicKey, true);
     ptMatrixInit.stop();
     std::cout << "Time taken for the ptMatrix initialization: " << ptMatrixInit.elapsed_time() << std::endl;
-    ptMatrix1.print();
-    ptMatrix2.print();
+    //ptMatrix1.print();
+    //ptMatrix2.print();
 
     
     PTMatrix ptResult = ptMatrix1 * ptMatrix2;
     cout << "matrix multiplication result:" << endl;
-    ptResult.print();
+    //ptResult.print();
 
     Timer totalTime;
 	totalTime.start();
