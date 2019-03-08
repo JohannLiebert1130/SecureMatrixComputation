@@ -5,7 +5,7 @@
 #include "powerful.h"
 #include "binio.h"
 #include <fstream>
-
+#include <algorithm>
 
 
 long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int dim, bool verbose=false)
@@ -453,6 +453,15 @@ vector<ZZX> PTMatrix::DiagonalEncoding(const EncryptedArray& ea)
     return zzxVec;
 }
 
+ZZX VectorEncoding(const vector<long>& v, const EncryptedArray& ea)
+{
+    ZZX zzxVec;
+    vector<long> temp = v;
+    temp.resize(ea.size());
+    ea.encode(zzxVec, temp);
+    return zzxVec;
+}
+
 
 /* --------------------- EncryptedMatrix class -------------*/
 EncryptedMatrix::EncryptedMatrix(
@@ -508,7 +517,7 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
+Ctxt EncryptedMatrix::LinTrans1(const vector<vector<long> >& matrix) const{
     EncryptedArray ea(_diagonalMatrix[0].getContext());
     Ctxt result(_diagonalMatrix[0].getPubKey());
     int len = matrix.size();
@@ -524,7 +533,7 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
         //replicate the vector to fill instead of zero padding
         for(unsigned int length =len; length < ea.size(); length*=2){
             Ctxt copyVec = fixedVec;
-            ea.shift(copyVec, length);  //shift length to right
+            ea.shift(copyVec, );  //shift length to right
             fixedVec+=copyVec;
         }
     }
@@ -533,13 +542,24 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
 
    //Timer lintrans1Inner;
    //lintrans1Inner.start();
-    for(int i=-_d+1; i < _d; i++)
-    {
-        Ctxt rotatedVec(fixedVec);   //copy vec
-        ea.rotate(rotatedVec, -i);   //rotate it i right (-i left)
-        rotatedVec.multByConstant(matrix[myModulu(i, len)]);
-        result += rotatedVec;
-    }
+   int sqrtD = (int)sqrt(_d);
+   for(int i = -sqrtD + 1; i < sqrtD)
+   {
+       Ctxt temp(_diagonalMatrix[0].getPubKey());
+       for(int j = 0; j < sqrtD; j++)
+       {
+           vector<long> tempU = matrix[sqrtD * i + j];
+           std::rotate(tempU.begin(), tempU.begin()+tempU.size()-sqrtD * i, tempU.end());
+
+           Ctxt rotatedVec(fixedVec);
+           ea.rotate(rotatedVec, -j);
+           rotatedVec.multByConstant(VectorEncoding(tempU, ea));
+           temp += rotatedVec;
+       }
+       ea.rotate(temp, -(sqrtD * i));
+       result+= temp;
+   }
+    
    //lintrans1Inner.stop();
    //std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
 
@@ -659,11 +679,10 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 	// a0Init.start();
     //  Timer sigma;
     // sigma.start();
-    vector<ZZX> sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
     // sigma.stop();
     // std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
 
-    A[0] = LinTrans1(sigmaMatrix);
+    A[0] = LinTrans1(PTMatrix::sigmaPermutation(_d));
     // a0Init.stop();
     // std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
 
