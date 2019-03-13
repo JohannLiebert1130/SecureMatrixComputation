@@ -519,7 +519,7 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans1(const vector<vector<long> >& matrix) const{
+Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
     EncryptedArray ea(_diagonalMatrix[0].getContext());
     Ctxt result(_diagonalMatrix[0].getPubKey());
     int len = matrix.size();
