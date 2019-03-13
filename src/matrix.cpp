@@ -124,7 +124,7 @@ long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int d
       long ordP = multOrd(p,candidate); // the multiplicative order of p mod m
       
       if (d>1 && ordP%d!=0 ) continue;
-      if (ordP > 100) continue;  // order too big, we will get very few slots
+      if (ordP > 10) continue;  // order too big, we will get very few slots
 
       long n = phi_N(candidate); // compute phi(m)
       if (n < N) continue;       // phi(m) too small
@@ -134,7 +134,8 @@ long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int d
       /*************/
       long slots = n / ordP;
       
-      if (slots < dim * dim * 2) continue;
+      if (slots < dim * dim) continue;
+      if (slots > dim * dim) return -1;
       /*************/
       //if (slots > dim * dim) return -1;
 

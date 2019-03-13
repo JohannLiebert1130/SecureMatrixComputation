@@ -2,7 +2,7 @@
 #include <iostream>
 using namespace std;
 
-const int MAXN = 33000;
+const int MAXN = 3300000;
 bool p[MAXN] = {false};     //如果ｉ为素数则p[i] 为　false 
 
 void SavePrime(ofstream& file)
