@@ -122,6 +122,7 @@ long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int d
       if (GCD(p,candidate)!=1) continue;
 
       long ordP = multOrd(p,candidate); // the multiplicative order of p mod m
+      
       if (d>1 && ordP%d!=0 ) continue;
       if (ordP > 100) continue;  // order too big, we will get very few slots
 
@@ -135,10 +136,10 @@ long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int d
       
       if (slots < dim * dim * 2) continue;
       /*************/
+      //if (slots > dim * dim) return -1;
 
 
-
-
+      cout << "phi(m): " << n << endl;
       m = candidate;  // all tests passed, return this value of m
       break;
     }
@@ -531,8 +532,8 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
    //shiftOperation.stop();
    //std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
 
-   //Timer lintrans1Inner;
-   //lintrans1Inner.start();
+   Timer lintrans1Inner;
+   lintrans1Inner.start();
     for(int i=-_d+1; i < _d; i++)
     {
         Ctxt rotatedVec(fixedVec);   //copy vec
@@ -540,8 +541,8 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
         rotatedVec.multByConstant(matrix[myModulu(i, len)]);
         result += rotatedVec;
     }
-   //lintrans1Inner.stop();
-   //std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
+   lintrans1Inner.stop();
+   std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
 
     return result;
 }
@@ -655,8 +656,8 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 
     vector<Ctxt> A(_d, Ctxt(vec.getPubKey())), B(_d, Ctxt(vec.getPubKey()));
 
-    // Timer a0Init;
-	// a0Init.start();
+    Timer a0Init;
+ a0Init.start();
     //  Timer sigma;
     // sigma.start();
     vector<ZZX> sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
@@ -664,35 +665,35 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
     // std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
 
     A[0] = LinTrans1(sigmaMatrix);
-    // a0Init.stop();
-    // std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
+     a0Init.stop();
+     std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
 
     //A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
    
 
-    // Timer b0Init;
-    // b0Init.start();
+     Timer b0Init;
+     b0Init.start();
     B[0] = other.LinTrans2(PTMatrix::tauPermutation(_d).DiagonalEncoding(ea));
-    // b0Init.stop();
-    // std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
+     b0Init.stop();
+     std::cout << "Time taken for the b[0]: " << b0Init.elapsed_time() << std::endl;
 
     for(int k = 1; k < _d; k++)
     {
-        // Timer akInit;
-        // akInit.start();
+         Timer akInit;
+         akInit.start();
         A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).DiagonalEncoding(ea), _d, k);
-        // akInit.stop();
-        // std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
+         akInit.stop();
+         std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
 
-        // Timer bkInit;
-        // bkInit.start();
+         Timer bkInit;
+         bkInit.start();
         B[k] = LinTrans4(B[0], _d, k);
-        // bkInit.stop();
-        // std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
+         bkInit.stop();
+         std::cout << "Time taken for the b[" << k <<"]: " << bkInit.elapsed_time() << std::endl;
     }
 
-    // Timer multiplySum;
-    // multiplySum.start();
+     Timer multiplySum;
+     multiplySum.start();
     Ctxt result = A[0];
     result.multiplyBy(B[0]) ;
     for(int k = 1; k < _d; k++)
@@ -701,8 +702,8 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
         temp *= B[k];
         result += temp;
     }
-    // multiplySum.stop();
-    // std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
+     multiplySum.stop();
+     std::cout << "Time taken for multiplySum " << multiplySum.elapsed_time() << std::endl;
     return result;
 }
 
@@ -723,7 +724,8 @@ void test(int dimension, long p)
     Timer tInit;
 	tInit.start();
     m = FindM1(k, L, c, p, d, s, 0, dimension, false);           // Find a value for m given the specified values
-    
+    if (m == -1) return;
+
     //m=32003-1;//1907 is a safe prime
     // m=16487-1; 
     std::cout << "Initializing context... " << std::flush;
@@ -746,9 +748,7 @@ void test(int dimension, long p)
 	std::cout << "Time taken for the initialization: " << tInit.elapsed_time() << std::endl;
     cout << "current p is: " << p << endl;
     cout << "m: " << m << endl;
-    cout << "nslots: " << ea.size() << endl;
-    
-   
+    cout << "nslots: " << ea.size() << endl;   
 
     Timer ptMatrixInit;
 	ptMatrixInit.start();
@@ -760,8 +760,8 @@ void test(int dimension, long p)
     EncryptedMatrix encMatrix2 = ptMatrix2.encrypt(publicKey, true);
     ptMatrixInit.stop();
     std::cout << "Time taken for the ptMatrix initialization: " << ptMatrixInit.elapsed_time() << std::endl;
-    //ptMatrix1.print();
-    //ptMatrix2.print();
+    ptMatrix1.print();
+    ptMatrix2.print();
 
     
     PTMatrix ptResult = ptMatrix1 * ptMatrix2;
