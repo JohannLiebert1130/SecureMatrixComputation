@@ -11,9 +11,9 @@ void SavePrime(ofstream& file)
     {
         for(int i = 2; i < MAXN; i++)
         {
-            if(p[i] == false && i > 3300000)
+            if(p[i] == false)
             {
-                file << i << "\n";
+                if(i > 3300000) file << i << "\n";
                 for(int j = 2*i; j < MAXN; j += i)
                     p[j] = true;
             }
