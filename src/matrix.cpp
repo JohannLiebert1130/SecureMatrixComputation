@@ -535,7 +535,7 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
         //replicate the vector to fill instead of zero padding
         for(unsigned int length =len; length < ea.size(); length*=2){
             Ctxt copyVec = fixedVec;
-            ea.shift(copyVec, );  //shift length to right
+            ea.shift(copyVec, length);  //shift length to right
             fixedVec+=copyVec;
         }
     }
@@ -670,18 +670,13 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
  a0Init.start();
     //  Timer sigma;
     // sigma.start();
+    sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
     // sigma.stop();
     // std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
 
-<<<<<<< HEAD
-    A[0] = LinTrans1(PTMatrix::sigmaPermutation(_d));
-    // a0Init.stop();
-    // std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
-=======
     A[0] = LinTrans1(sigmaMatrix);
      a0Init.stop();
      std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;
->>>>>>> my-tempwork
 
     //A[0] = PTMatrix::sigmaPermutation(_d).encrypt(vec.getPubKey()).LinTrans1(getRowMatrix(), _d);
    
