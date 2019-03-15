@@ -60,6 +60,8 @@ public:
     PTMatrix operator>=(const PTMatrix& other) const;
     PTMatrix operator<=(const PTMatrix& other) const;
     
+    bool isEqual(const vector<long>& other) const;
+    
     bool operator==(const PTMatrix& other) const;
     bool operator!=(const PTMatrix& other) const;
     
