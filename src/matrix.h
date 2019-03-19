@@ -110,7 +110,7 @@ public:
     //matrix multyplication by vector
     Ctxt operator*(const Ctxt& vec) const;
 
-    Ctxt LinTrans1(const vector<ZZX>& matrix) const;
+    Ctxt LinTrans1(const vector<vector<long> >& matrix) const;
     Ctxt LinTrans2(const vector<ZZX>& matrix) const;
     static Ctxt LinTrans3(const Ctxt& vec, const vector<ZZX>& matrix, int d, int k);
     static Ctxt LinTrans4(const Ctxt& vec, int d, int k);

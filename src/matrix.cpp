@@ -533,17 +533,13 @@ Ctxt EncryptedMatrix::operator*(const Ctxt& vec) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
+Ctxt EncryptedMatrix::LinTrans1(const vector<vector<long> >& matrix) const{
     EncryptedArray ea(_diagonalMatrix[0].getContext());
     Ctxt result(_diagonalMatrix[0].getPubKey());
     int len = matrix.size();
     
     //TODO: Still not perfectlly working
-    
     Ctxt fixedVec = _rowMatrix;
-   
-    //Timer shiftOperation;
-    //shiftOperation.start();
     if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
     {
         //replicate the vector to fill instead of zero padding
@@ -553,21 +549,33 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<ZZX>& matrix) const{
             fixedVec+=copyVec;
         }
     }
-   //shiftOperation.stop();
-   //std::cout << "Time taken for the shiftOperation: " << shiftOperation.elapsed_time() << std::endl;
 
-   Timer lintrans1Inner;
-   lintrans1Inner.start();
-    for(int i=-_d+1; i < _d; i++)
+    int sqrtD = (int)sqrt((double)_d);
+    for(int i = -sqrtD + 1; i < sqrtD; i++)
     {
-        Ctxt rotatedVec(fixedVec);   //copy vec
-        ea.rotate(rotatedVec, -i);   //rotate it i right (-i left)
-        rotatedVec.multByConstant(matrix[myModulu(i, len)]);
-        result += rotatedVec;
+        Ctxt temp(_diagonalMatrix[0].getPubKey());
+        for(int j = 0; j < sqrtD; j++)
+        {
+            Ctxt rotatedVec(fixedVec);   //copy vec
+            ea.rotate(rotatedVec, -j);   //rotate it i right (-i left)
+            vector<long> rotatedVec2 = matrix[myModulu(sqrtD*i+j, len)];
+            int step = sqrtD * i;
+            if (step > 0)
+                std::rotate(rotatedVec2.begin(), rotatedVec2.begin()+rotatedVec2.size()-step, rotatedVec2.end());
+            else
+            {
+                std::rotate(rotatedVec2.begin(), rotatedVec2.begin()-step, rotatedVec2.end());
+            }
+            
+            ZZX U;
+            rotatedVec2.resize(ea.size());
+            ea.encode(U, rotatedVec2);
+            rotatedVec.multByConstant(U);
+            temp += rotatedVec;
+        }
+        ea.rotate(temp, -(sqrtD * i));
+        result += temp;
     }
-   lintrans1Inner.stop();
-   std::cout << "Time taken for the lintrans1Inner: " << lintrans1Inner.elapsed_time() << std::endl;
-
     return result;
 }
 
@@ -682,13 +690,7 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 
     Timer a0Init;
     a0Init.start();
-    //  Timer sigma;
-    // sigma.start();
-    vector<ZZX> sigmaMatrix = PTMatrix::sigmaPermutation(_d).DiagonalEncoding(ea);
-    // sigma.stop();
-    // std::cout << "Time taken for the sigmaMatrix: " << sigma.elapsed_time() << std::endl;
-
-    A[0] = LinTrans1(sigmaMatrix);
+    A[0] = Lintrans1(PTMatrix::sigmaPermutation(_d).getDiagonalMatrix());
     a0Init.stop();
     std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;   
 
