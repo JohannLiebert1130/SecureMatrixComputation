@@ -151,7 +151,7 @@ long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int d
             << endl;
     }
 
-    eturn m;
+    return m;
 }
 
 
