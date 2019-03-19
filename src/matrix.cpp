@@ -728,12 +728,12 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
     return result;
 }
 
-void test(int dimension, long p)
+void test(int dimension, long p, ofstream& file)
 {
     long m = 0;                   // Specific modulus
 	//long p = 113;//16487    32003             // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
-	long L = 450;                  // Number of levels in the modulus chain [default=heuristic]
+	long L = 15;                  // Number of levels in the modulus chain [default=heuristic]
 	long c = 3;                   // Number of columns in key-switching matrix [default=2]
 	long w = 64;                  // Hamming weight of secret key
 	long d = 1;                   // Degree of the field extension [default=1]
@@ -748,6 +748,7 @@ void test(int dimension, long p)
     m = FindM1(k, L, c, p, d, s, 0, dimension, false);           // Find a value for m given the specified values
     if (m == -1) return;
 
+    file << p << ' ';
     //m=32003-1;//1907 is a safe prime
     // m=16487-1; 
     std::cout << "Initializing context... " << std::flush;
@@ -794,6 +795,7 @@ void test(int dimension, long p)
     Ctxt result = encMatrix1 * encMatrix2;
     totalTime.stop();
 	std::cout << "matrix mul total time " << totalTime.elapsed_time() << std::endl;
+    file << totalTime.elapsed_time() << "s\n";
 
     vector<long> temp(ea.size(), 0);
     ea.decrypt(result, secretKey, temp);
@@ -808,6 +810,7 @@ void test(int dimension, long p)
 int main()
 {
     ifstream file("prime.txt");
+    ofstream outputFile("suitable_prime.txt");
     string line;
     long prime;
     int dimension;
@@ -819,10 +822,11 @@ int main()
         {
             getline(file, line); //get number of rows 
             prime = stoi(line);
-            test(dimension, prime);
+            test(dimension, prime, outputFile);
 
         }
         file.close();
+        outputFile.close();
     }
     else
     {
