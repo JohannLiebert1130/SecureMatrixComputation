@@ -728,8 +728,10 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
     return result;
 }
 
-void test(int dimension, long p, ofstream& file)
+void test(int dimension, long p)
 {
+    ofstream file;
+    file.open("suitable_prime.txt",ios::app);
     long m = 0;                   // Specific modulus
 	//long p = 113;//16487    32003             // Plaintext base [default=2], should be a prime number
 	long r = 1;                   // Lifting [default=1]
@@ -796,7 +798,8 @@ void test(int dimension, long p, ofstream& file)
     totalTime.stop();
 	std::cout << "matrix mul total time " << totalTime.elapsed_time() << std::endl;
     file << totalTime.elapsed_time() << "s\n";
-
+    file.close();
+    
     vector<long> temp(ea.size(), 0);
     ea.decrypt(result, secretKey, temp);
     for(int i = 0; i < dimension * dimension; i++)
@@ -810,7 +813,7 @@ void test(int dimension, long p, ofstream& file)
 int main()
 {
     ifstream file("prime.txt");
-    ofstream outputFile("suitable_prime.txt");
+    
     string line;
     long prime;
     int dimension;
@@ -822,11 +825,9 @@ int main()
         {
             getline(file, line); //get number of rows 
             prime = stoi(line);
-            test(dimension, prime, outputFile);
-
+            test(dimension, prime);
         }
         file.close();
-        outputFile.close();
     }
     else
     {
@@ -836,4 +837,3 @@ int main()
     
     return 0;
 }
-
