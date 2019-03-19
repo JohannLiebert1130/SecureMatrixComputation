@@ -151,7 +151,7 @@ long FindM1(long k, long L, long c, long p, long d, long s, long chosen_m, int d
             << endl;
     }
 
-    eturn m;
+    return m;
 }
 
 
@@ -690,7 +690,7 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
 
     Timer a0Init;
     a0Init.start();
-    A[0] = Lintrans1(PTMatrix::sigmaPermutation(_d).getDiagonalMatrix());
+    A[0] = LinTrans1(PTMatrix::sigmaPermutation(_d).getDiagonalMatrix());
     a0Init.stop();
     std::cout << "Time taken for the a[0]: " << a0Init.elapsed_time() << std::endl;   
 
