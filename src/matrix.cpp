@@ -600,7 +600,7 @@ Ctxt EncryptedMatrix::LinTrans2(const vector<ZZX>& matrix) const{
     return result;
 }
 
-Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, const vector<ZZX>& matrix, int d, int k){
+Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, const vector<vector<long> >& matrix, int d, int k){
     EncryptedArray ea(vec.getContext());
     Ctxt result(vec.getPubKey());
     int len = matrix.size();
@@ -618,16 +618,25 @@ Ctxt EncryptedMatrix::LinTrans3(const Ctxt& vec, const vector<ZZX>& matrix, int 
         }
     }
     
+    Ctxt temp(fixedVec);   //copy vec
 
-    Ctxt rotatedVec(fixedVec);   //copy vec
-    ea.rotate(rotatedVec, -k);   //rotate it i right (-i left)
-    rotatedVec.multByConstant(matrix[k]);
+    vector<long> rotatedVec2 = matrix[k];
+    std::rotate(rotatedVec2.begin(), rotatedVec2.begin()+rotatedVec2.size()-k, rotatedVec2.end());
+    ZZX U;
+    if(ea.size() != rotatedVec2.size())
+        rotatedVec2.resize(ea.size());
+        
+    ea.encode(U, rotatedVec2);
+    temp.multByConstant(U);
+    Ctxt rotatedVec = temp;
+    ea.rotate(rotatedVec, -k);
     result = rotatedVec;
 
 
-    rotatedVec =fixedVec;   //copy vec
+    rotatedVec = fixedVec;
+    rotatedVec -= temp;
     ea.rotate(rotatedVec, d-k);   //rotate it i right (-i left)
-    rotatedVec.multByConstant(matrix[myModulu(k-d, len)]);
+    
 
     result += rotatedVec;
     return result;
@@ -702,7 +711,7 @@ Ctxt EncryptedMatrix::operator*( EncryptedMatrix& other)
     {
         Timer akInit;
         akInit.start();
-        A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).DiagonalEncoding(ea), _d, k);
+        A[k] = LinTrans3(A[0], PTMatrix::phiPermutation(_d, k).getDiagonalMatrix(), _d, k);
         akInit.stop();
         std::cout << "Time taken for the a[" << k <<"]: " << akInit.elapsed_time() << std::endl;
 

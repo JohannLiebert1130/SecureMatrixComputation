@@ -112,7 +112,7 @@ public:
 
     Ctxt LinTrans1(const vector<ZZX>& matrix) const;
     Ctxt LinTrans2(const vector<ZZX>& matrix) const;
-    static Ctxt LinTrans3(const Ctxt& vec, const vector<ZZX>& matrix, int d, int k);
+    static Ctxt LinTrans3(const Ctxt& vec, const vector<vector<long> >& matrix, int d, int k);
     static Ctxt LinTrans4(const Ctxt& vec, int d, int k);
 
     // Matrix Encoding Method,
