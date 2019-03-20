@@ -561,14 +561,18 @@ Ctxt EncryptedMatrix::LinTrans1(const vector<vector<long> >& matrix) const{
             vector<long> rotatedVec2 = matrix[myModulu(sqrtD*i+j, len)];
             int step = sqrtD * i;
             if (step > 0)
+                // right rotation with abs(step) steps
                 std::rotate(rotatedVec2.begin(), rotatedVec2.begin()+rotatedVec2.size()-step, rotatedVec2.end());
             else
             {
+                // left rotation with abs(step) steps
                 std::rotate(rotatedVec2.begin(), rotatedVec2.begin()-step, rotatedVec2.end());
             }
             
             ZZX U;
-            rotatedVec2.resize(ea.size());
+            if(ea.size() != rotatedVec2.size())
+                rotatedVec2.resize(ea.size());
+                
             ea.encode(U, rotatedVec2);
             rotatedVec.multByConstant(U);
             temp += rotatedVec;
