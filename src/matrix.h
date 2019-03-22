@@ -84,6 +84,7 @@ public:
     static PTMatrix tauPermutation(unsigned int d);
     static PTMatrix phiPermutation(unsigned int d, int k);
     static PTMatrix psiPermutation(unsigned int d, int k);
+    static PTMatrix TransposeMap(unsigned int d);
 
     vector<ZZX> DiagonalEncoding(const EncryptedArray& ea);
 
@@ -115,6 +116,7 @@ public:
     static Ctxt LinTrans3(const Ctxt& vec, const vector<vector<long> >& matrix, int d, int k);
     static Ctxt LinTrans4(const Ctxt& vec, int d, int k);
 
+    Ctxt TransposeInner();
     // Matrix Encoding Method,
     static Ctxt MatrixEncoding(vector<Ctxt> matrix);
 

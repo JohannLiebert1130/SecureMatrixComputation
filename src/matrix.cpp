@@ -457,6 +457,19 @@ PTMatrix PTMatrix::psiPermutation(unsigned int d, int k){
     return PTMatrix(rowMatrix, false, false);
 }
 
+PTMatrix PTMatrix::TransposeMap(unsigned int d)
+{
+    long dSquare = d * d;
+    vector<vector<long> > rowMatrix(dSquare, vector<long>(dSquare, 0));
+    for(int l=0; l < dSquare; l++)
+        for(int i=0; i < d; i++)
+            for(int j=0; j < d; j++)
+            {
+                if(l == d * j + i) rowMatrix[d*i+j][l] = 1;
+            }
+    return PTMatrix(rowMatrix, false, false);
+}
+
 vector<ZZX> PTMatrix::DiagonalEncoding(const EncryptedArray& ea)
 {
     vector<ZZX> zzxVec(_d);
@@ -668,6 +681,38 @@ Ctxt EncryptedMatrix::LinTrans4(const Ctxt& vec, int d, int k){
     return result;
 }
 
+Ctxt EncryptedMatrix::TransposeInner()
+{
+    EncryptedArray ea(_diagonalMatrix[0].getContext());
+
+    vector<ZZX> matrix = PTMatrix::TransposeMap(_d).DiagonalEncoding(ea);
+    Ctxt result(_diagonalMatrix[0].getPubKey());
+    int len = matrix.size();
+    
+    //TODO: Still not perfectlly working
+    
+    Ctxt fixedVec = _rowMatrix;
+    if(ea.size() != len) //Fix the problem that if the size of the vector is not nslots, the zero padding make the rotation push zeros to the begining of the vector
+    {
+        //replicate the vector to fill instead of zero padding
+        for(unsigned int length =len; length < ea.size(); length*=2){
+            Ctxt copyVec = fixedVec;
+            ea.shift(copyVec, length);  //shift length to right
+            fixedVec+=copyVec;
+        }
+    }
+    
+    for(int i= -_d + 1; i < _d; i++)
+    {
+        Ctxt rotatedVec(fixedVec);   //copy vec
+        ea.rotate(rotatedVec, (1-_d)*i);   //rotate it i right (-i left)
+        rotatedVec.multByConstant(matrix[myModulu((_d-1)*i, len)]);
+        result += rotatedVec;
+    }
+
+    return result;
+}
+
 int EncryptedMatrix::getD()
 {
     return _d;
@@ -783,16 +828,19 @@ void test(int dimension, long p)
     cout << "m: " << m << endl;
     cout << "nslots: " << ea.size() << endl;   
 
-    Timer ptMatrixInit;
-	ptMatrixInit.start();
+
     PTMatrix ptMatrix1(dimension,3, true);
     EncryptedMatrix encMatrix1 = ptMatrix1.encrypt(publicKey, true);
 
+    Ctxt ctxt = encMatrix1.TransposeInner();
+    vector<long> tem(ea.size(), 1);
+    ea.decrypt(ctxt, secretKey, tem);
+    for(int i = 0; i < dimension * dimension; i++)
+        cout << tem[i] << ' ';
+    cout << endl << endl << endl << endl;
     
     PTMatrix ptMatrix2(dimension, 3, true);
     EncryptedMatrix encMatrix2 = ptMatrix2.encrypt(publicKey, true);
-    ptMatrixInit.stop();
-    std::cout << "Time taken for the ptMatrix initialization: " << ptMatrixInit.elapsed_time() << std::endl;
     ptMatrix1.print();
     ptMatrix2.print();
 
@@ -821,6 +869,8 @@ void test(int dimension, long p)
 }
 int main()
 {
+    
+
     ifstream file("prime.txt");
     
     string line;
